@@ -217,9 +217,6 @@ void DCCPacketScheduler::setup(void) //for any post-constructor initialization
 }
 
 //helper functions
-void DCCPacketScheduler::stashAddress(DCCPacket *p)
-{
-}
 void DCCPacketScheduler::repeatPacket(DCCPacket *p)
 {
   switch(p->getKind())
@@ -332,9 +329,9 @@ void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending o
       if(doRefresh)
       {
         periodic_refresh_queue.readPacket(&p);
-        if(p.getAddress() == last_packet_address) //no immediate repeats!
+        if(p.getAddress() && (p.getAddress() == last_packet_address)) //no immediate repeats to same address, unless this is a broadcast packet 
         {
-          repeat_queue.insertPacket(&p); //this might look like an error, but it isn't. Ensures that it doesn't get overwritten because of age
+          periodic_refresh_queue.insertPacket(&p); //this might look like an error, but it isn't. Ensures that it doesn't get overwritten because of age
           ++packet_counter;
           return;
         }
@@ -342,9 +339,9 @@ void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending o
       else if(doRepeat)
       {
         repeat_queue.readPacket(&p);
-        if(p.getAddress() == last_packet_address) //no immediate repeats!
+        if(p.getAddress() && (p.getAddress() == last_packet_address)) //no immediate repeats!
         {
-          repeat_queue.insertPacket(&p); //this might look like an error, but it isn't. Ensures that it doesn't get overwritten because of age, and that it repeats the right number of times.
+          repeat_queue.insertPacket(&p); //this might look like an error, but it isn't. Ensures that it repeats the right number of times.
           ++packet_counter;
           return;
         }
@@ -352,9 +349,9 @@ void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending o
       else if(doLow)
       {
         low_priority_queue.readPacket(&p);
-        if(p.getAddress() == last_packet_address) //no immediate repeats!
+        if(p.getAddress() && (p.getAddress() == last_packet_address)) //no immediate repeats!
         {
-          low_priority_queue.insertPacket(&p);
+          low_priority_queue.insertPacket(&p); //if a repeat, requeue it
           ++packet_counter;
           return;
         }
@@ -362,9 +359,9 @@ void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending o
       else if(doHigh)
       {
         high_priority_queue.readPacket(&p);
-        if(p.getAddress() == last_packet_address) //no immediate repeats!
+        if(p.getAddress() && (p.getAddress() == last_packet_address)) //no immediate repeats!
         {
-          high_priority_queue.insertPacket(&p);
+          high_priority_queue.insertPacket(&p); //if a repeat, requeue it
           ++packet_counter;
           return;
         }
@@ -373,10 +370,12 @@ void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending o
       {
       // no need to do anything, since the default values of p make it an idle packet
       }
-      stashAddress(&p); //remember the address to compare with the next packet
-      repeatPacket(&p); //insert into the appropriate repeat queue
-      ++packet_counter; //it's a byte; let it overflow, that's OK.    
-      current_packet_size = p.getBitstream(current_packet); //feed to the starving ISR.
+      
+      repeatPacket(&p); //re-insert the packet into the appropriate repeat queue
     }
+    
+    last_packet_address = p.getAddress(); //remember the address to compare with the next packet
+    ++packet_counter; //it's a byte; let it overflow, that's OK.    
+    current_packet_size = p.getBitstream(current_packet); //feed to the starving ISR.
   }
 }

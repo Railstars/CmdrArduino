@@ -16,11 +16,6 @@
 
 class DCCPacketScheduler
 {
-  private:
-    void stashAddress(DCCPacket *p); //remember the address to compare with the next packet
-    void repeatPacket(DCCPacket *p); //insert into the appropriate repeat queue
-    byte default_speed_steps;
-    unsigned int last_packet_address;
   public:
   
     DCCPacketScheduler(void);
@@ -52,6 +47,11 @@ class DCCPacketScheduler
 
   private:
   
+  //  void stashAddress(DCCPacket *p); //remember the address to compare with the next packet
+    void repeatPacket(DCCPacket *p); //insert into the appropriate repeat queue
+    byte default_speed_steps;
+    unsigned int last_packet_address;
+  
     byte packet_counter;
     
     PacketQueue e_stop_queue;
@@ -63,7 +63,6 @@ class DCCPacketScheduler
     //TODO to be completed later.
     //DCC_Packet ops_programming_queue[10];
 
-    byte speed_steps; //=SPEED_STEPS_128
 };
 
 #endif //__DCC_COMMANDSTATION_H__
