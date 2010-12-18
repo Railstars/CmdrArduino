@@ -240,10 +240,50 @@ bool DCCPacketScheduler::setSpeed(unsigned int address,  char new_speed, byte st
 }
 bool DCCPacketScheduler::setSpeed14(unsigned int address, char new_speed)
 {
+  DCCPacket p(address);
+  byte dir = 1;
+  byte speed_data_bytes[] = {0x40};
+  unsigned int speed = new_speed;
+  if(new_speed<0)
+  {
+    dir = 0;
+    speed = new_speed * -1;
+  }
+  if(new_speed) //leave at 0 for stop.
+    speed_data_bytes[0] |= ((13*speed) / 127)+2; //convert from [1-127] to [2-15]
+  speed_data_bytes[0] |= (0x20*dir); //flip bit 3 to indicate direction;
+  p.addData(speed_data_bytes,1);
+  
+  //speed packets get refreshed indefinitely, and so the repeat doesn't need to be set.
+  //speed packets go to the high proirity queue
+  return(high_priority_queue.insertPacket(&p));
 }
+
 bool DCCPacketScheduler::setSpeed28(unsigned int address, char new_speed)
 {
+  DCCPacket p(address);
+  byte dir = 1;
+  byte speed_data_bytes[] = {0x40};
+  unsigned int speed = new_speed;
+  if(new_speed<0)
+  {
+    dir = 0;
+    speed = new_speed * -1;
+  }
+  if(new_speed) //leave at 0 for stop.
+  {
+    speed_data_bytes[0] |= ((27*speed) / 127)+3; //convert from [1-127] to [3-31]
+    //most least significant bit has to be shufled around
+    speed_data_bytes[0] = (speed_data_bytes[0]&0xE0) | ((speed_data_bytes[0]&0x1F) >> 1) | ((speed_data_bytes[0]&0x01) << 4);
+  }
+  speed_data_bytes[0] |= (0x20*dir); //flip bit 3 to indicate direction;
+  p.addData(speed_data_bytes,1);
+  
+  //speed packets get refreshed indefinitely, and so the repeat doesn't need to be set.
+  //speed packets go to the high proirity queue
+  return(high_priority_queue.insertPacket(&p));
 }
+
 bool DCCPacketScheduler::setSpeed128(unsigned int address, char new_speed)
 {
   DCCPacket p(address);
