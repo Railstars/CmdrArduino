@@ -123,12 +123,12 @@ ISR(TIMER1_COMPA_vect)
   //first, check to see if we're in the second half of a byte; only act on the first half of a byte
   if(!(PINB & (1<<PB1))) //if the pin is low, we need to use a different zero counter to enable streched-zero DC operation
   {
-    if(OCR1A == zero_high_count) //if the pin islowh and outputting a zero, we need to be using zero_low_count
+    if(OCR1A == zero_high_count) //if the pin is low and outputting a zero, we need to be using zero_low_count
       {
         OCR1A = zero_low_count;
       }
   }
-  else //the pin ish high. New cycle is begining. Here's where the real work goes.
+  else //the pin is high. New cycle is begining. Here's where the real work goes.
   {
      //time to switch things up, maybe. send the current bit in the current packet.
      //if this is the last bit to send, queue up another packet (might be the idle packet).
@@ -215,62 +215,55 @@ void DCCPacketScheduler::setup(void) //for any post-constructor initialization
 {
   setup_DCC_waveform_generator();
 }
+
+//helper functions
+void DCCPacketScheduler::stashAddress(DCCPacket *p)
+{
+}
+void DCCPacketScheduler::repeatPacket(DCCPacket *p)
+{
+  switch(p.getKind())
+  {
+//    case e_stop_packet_kind: //e_stop packets automatically repeat without having to be put in a special queue
+    case speed_packet_kind: //speed packets go to the periodic_refresh queue
+      period_refresh_queue.insertPacket(p);
+      break;
+//    case function_packet_kind: //all other packets go to the repeat_queue
+//    case accessory_packet_kind:
+//    case reset_packet_kind:
+//    case other_packet_kind:
+    default:
+      repeat_queue.insertPacket(p);
+  }
+}
     
 //for enqueueing packets
-//here's one function wherein a 15bit speed is passed in; we'll need to downconvert it.
-//optional: The caller can instruct us to downconvert to a particular speed format.
-bool DCCPacketScheduler::setSpeed(unsigned int address, unsigned int new_speed, byte direction, byte new_speed_steps = 0)
+bool DCCPacketScheduler::setSpeed(unsigned int address,  char new_speed, byte steps = 0)
 {
-  byte speed_steps = default_speed_steps;
-  if(new_speed_steps) speed_steps = new_speed_steps;
-
-  byte down_converted_speed = 0;
-  //first, downconver to 128 speed steps; then downconvert further if needed.
-  switch(speed_steps)
+}
+bool DCCPacketScheduler::setSpeed14(unsigned int address, char new_speed)
+{
+}
+bool DCCPacketScheduler::setSpeed28(unsigned int address, char new_speed)
+{
+}
+bool DCCPacketScheduler::setSpeed128(unsigned int address, char new_speed)
+{
+  DCCPacket p(address);
+  byte dir = 1;
+  byte speed_data_bytes[] = {0x3F,new_speed};
+  if(new_speed<0)
   {
-    case 14:
-      if(new_speed) //only downconvert if speed > 0, otherwise zero is zero…
-      {
-        down_converted_speed = ((new_speed*0xF)+((0x7FFF-new_speed)*2))/(0x7FFF);
-      }
-      down_converted_speed |= (0x20 * direction); // set direction bit
-      down_converted_speed |= 0x40; //set basic speed command bit
-      return setSpeed14(address, down_converted_speed);
-    case 28:
-      if(new_speed)
-      {
-        down_converted_speed = ((new_speed*0x1F)+((0x7FFF-new_speed)*4))/(0x7FFF);
-        //rearrange the least significat bit, ugh.
-        down_converted_speed = (down_converted_speed >> 1) | ((down_converted_speed & 0x01) << 4);
-        down_converted_speed |= (0x20 * direction); // set direction bit
-        down_converted_speed |= 0x40; //set basic speed command bit
-        return setSpeed28(address, down_converted_speed);
-      }
-    case 128:
-      if(new_speed) //only downconvert if speed > 0, otherwise zero is zero…
-      {
-        down_converted_speed = ((new_speed*0x7F)+((0x7FFF-new_speed)*2))/(0x7FFF);
-        down_converted_speed |= (0x80 * direction); //set direction bit
-      }
-      return setSpeed128(address, down_converted_speed);
-    default:
-      return false; //never heard of that speed step format!
+    dir = 0;
+    speed_data_bytes[1] = new_speed * -1;
   }
-  return false; //should never reach here.
-}
-
-//these packets take a fully formed speed byte that conforms to S9.2:
-//0x01DCCCCC
-bool DCCPacketScheduler::setSpeed14(unsigned int address, byte new_speed)
-{
-}
-
-bool DCCPacketScheduler::setSpeed28(unsigned int address, byte new_speed)
-{
-}
-
-bool DCCPacketScheduler::setSpeed128(unsigned int address, byte new_speed)
-{
+  
+  speed_data_bytes[1] |= (0x80*dir); flip bit 0 to indicate direction;
+  p.addData(speed_data_bytes,2);
+  
+  //speed packets get refreshed indefinitely, and so the repeat doesn't need to be set.
+  //speed packets go to the high proirity queue
+  return(high_priority_queue.insertPacket(&p));
 }
     
 bool DCCPacketScheduler::setFunction(unsigned int address, byte function)
@@ -339,7 +332,7 @@ void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending o
       if(doRefresh)
       {
         periodic_refresh_queue.readPacket(&p);
-        if(p.getAddress() = lastPacketAddress) //no immediate repeats!
+        if(p.getAddress() == lastPacketAddress) //no immediate repeats!
         {
           repeat_queue.insertPacket(&p); //this might look like an error, but it isn't. Ensures that it doesn't get overwritten because of age
           ++packet_counter;
@@ -349,7 +342,7 @@ void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending o
       else if(doRepeat)
       {
         repeat_queue.readPacket(&p);
-        if(p.getAddress() = lastPacketAddress) //no immediate repeats!
+        if(p.getAddress() == lastPacketAddress) //no immediate repeats!
         {
           repeat_queue.insertPacket(&p); //this might look like an error, but it isn't. Ensures that it doesn't get overwritten because of age, and that it repeats the right number of times.
           ++packet_counter;
@@ -359,7 +352,7 @@ void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending o
       else if(doLow)
       {
         low_priority_queue.readPacket(&p);
-        if(p.getAddress() = lastPacketAddress) //no immediate repeats!
+        if(p.getAddress() == lastPacketAddress) //no immediate repeats!
         {
           low_priority_queue.insertPacket(&p);
           ++packet_counter;
@@ -369,7 +362,7 @@ void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending o
       else if(doHigh)
       {
         high_priority_queue.readPacket(&p);
-        if(p.getAddress() = lastPacketAddress) //no immediate repeats!
+        if(p.getAddress() == lastPacketAddress) //no immediate repeats!
         {
           high_priority_queue.insertPacket(&p);
           ++packet_counter;

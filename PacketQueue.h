@@ -37,6 +37,7 @@ class PacketQueue
     virtual bool readPacket(DCCPacket *packet); //does not hand off memory management of packet. used immediately.
 };
 
+//A queue that, instead of writing new packets to the end of the queue, simply overwrites the oldest packet in the queue
 class TemporalQueue: public PacketQueue
 {
   protected:
@@ -49,6 +50,7 @@ class TemporalQueue: public PacketQueue
     bool forget(unsigned int address);
 };
 
+//A queue that, when a packet is read, puts that packet back in the queue if it requires repeating.
 class RepeatQueue: public PacketQueue
 {
   public:

@@ -17,10 +17,20 @@ PacketQueue::PacketQueue(byte length) : read_pos(0), write_pos(0), written(0), s
 
 bool PacketQueue::insertPacket(DCCPacket *packet)
 {
+  //First: Overwrite any packet with the same address and kind; if no such packet THEN hitup the packet at write_pos
+  for(byte i = read_pos; i <= read_pos+written; ++i)
+  {
+    byte queue_address = i%size;
+    if( (queue[queue_address].getAddress() == packet->getAddress()) && (queue[queue_address].getKind() == packet->getKind()))
+    {
+      memcpy(&queue[queue_address],packet,sizeof(DCCPacket));
+      //do not increment written!
+      return true;
+    }
+  }
   if(!isFull())
   {
-    Serial.print("Inserting packet at pos ");
-    Serial.println(write_pos,DEC);
+    //else, just write it at the end of the queue.
     memcpy(&queue[write_pos],packet,sizeof(DCCPacket));
     write_pos = (write_pos + 1) % size;
     ++written;
@@ -54,6 +64,7 @@ TemporalQueue::TemporalQueue(byte length) : PacketQueue(length)
   }
 }
 
+//TODO NEEDS FIXING!
 bool TemporalQueue::insertPacket(DCCPacket *packet)
 {
   //first, see if there is a packet to overwrite
@@ -62,7 +73,7 @@ bool TemporalQueue::insertPacket(DCCPacket *packet)
   byte eldest_idx = 0;
   for(byte i = 0; i < size; ++i)
   {
-    if(queue[i].getAddress() == packet->getAddress())
+    if((queue[i].getAddress() == packet->getAddress() && queue[i].getKind() == packet->getKind())
     {
       eldest_idx = i;
       break; //short circuit this, we've found it;
@@ -87,10 +98,11 @@ bool TemporalQueue::insertPacket(DCCPacket *packet)
       }
     }
   }
-  ++written;
+  ++written; //this is not being updated correctly; current updates if overwriting old, valid packet, which is incorrect.
   return true;
 }
 
+//TODO this function isn't quite right, because written isn't being updated correctly, and so isEmpty() isn't going to work right.
 bool TemporalQueue::readPacket(DCCPacket *packet)
 {
   if(!isEmpty()) //prevents the while loop below from running forever.
@@ -125,6 +137,14 @@ bool TemporalQueue::forget(unsigned int address)
 
 RepeatQueue::RepeatQueue(byte length) : PacketQueue(length)
 {
+}
+
+//TODO NEEDS FIXING!
+bool RepeatQueue::insertPacket(DCCPacket *packet)
+{
+  if(packet->getRepeat())
+    return(PacketQueue::insertPacket(packet));
+  return false;
 }
 
 bool RepeatQueue::readPacket(DCCPacket *packet)

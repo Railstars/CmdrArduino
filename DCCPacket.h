@@ -11,7 +11,7 @@ enum packet_kind_t {
   function_packet_kind,
   accessory_packet_kind,
   reset_packet_kind,
-  other_packe_kind
+  other_packet_kind
 };
 
 class DCCPacket
