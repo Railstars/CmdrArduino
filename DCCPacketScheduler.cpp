@@ -214,6 +214,22 @@ void DCCPacketScheduler::setDefaultSpeedSteps(byte new_speed_steps)
 void DCCPacketScheduler::setup(void) //for any post-constructor initialization
 {
   setup_DCC_waveform_generator();
+  
+  //Following RP 9.2.4, begin by putting 20 reset packets and 10 idle packets on the rails.
+  //use the e_stop_queue to do this, to ensure these packets go out first!
+  
+  DCCPacket p;
+  byte data[] = {0};
+  
+  //reset packet: address 0, data 0, XOR 0;
+  p.addData(data,1);
+  p.setRepeat(20);
+  e_stop_queue.insertPacket(&p);
+  
+  //idle packet: address 0, data 0xFF, XOR 0;
+  data[0] = 0xFF;
+  p.setRepeat(10);
+  e_stop_queue.insertPacket(&p); //e_stop_queue will be empty, so no need to check if insertion was OK.
 }
 
 //helper functions
@@ -253,7 +269,11 @@ bool DCCPacketScheduler::setSpeed14(unsigned int address, char new_speed)
     speed_data_bytes[0] |= ((13*speed) / 127)+2; //convert from [1-127] to [2-15]
   speed_data_bytes[0] |= (0x20*dir); //flip bit 3 to indicate direction;
   p.addData(speed_data_bytes,1);
+
+  p.setRepeat(SPEED_REPEAT);
   
+  p.setKind(speed_packet_kind);  
+
   //speed packets get refreshed indefinitely, and so the repeat doesn't need to be set.
   //speed packets go to the high proirity queue
   return(high_priority_queue.insertPacket(&p));
@@ -279,6 +299,10 @@ bool DCCPacketScheduler::setSpeed28(unsigned int address, char new_speed)
   speed_data_bytes[0] |= (0x20*dir); //flip bit 3 to indicate direction;
   p.addData(speed_data_bytes,1);
   
+  p.setRepeat(SPEED_REPEAT);
+  
+  p.setKind(speed_packet_kind);
+    
   //speed packets get refreshed indefinitely, and so the repeat doesn't need to be set.
   //speed packets go to the high proirity queue
   return(high_priority_queue.insertPacket(&p));
@@ -297,6 +321,10 @@ bool DCCPacketScheduler::setSpeed128(unsigned int address, char new_speed)
   
   speed_data_bytes[1] |= (0x80*dir); //flip bit 0 to indicate direction;
   p.addData(speed_data_bytes,2);
+  
+  p.setRepeat(SPEED_REPEAT);
+  
+  p.setKind(speed_packet_kind);
   
   //speed packets get refreshed indefinitely, and so the repeat doesn't need to be set.
   //speed packets go to the high proirity queue
@@ -321,7 +349,9 @@ bool DCCPacketScheduler::unsetFunction(unsigned int address, byte function)
 bool DCCPacketScheduler::eStop(void)
 {
     DCCPacket e_stop_packet = DCCPacket();
+    byte data[] = {0x41};
     //add data, repeat, etc.
+    e_stop_packet.addData(data,1);
     e_stop_packet.setKind(e_stop_packet_kind);
     e_stop_queue.insertPacket(&e_stop_packet);
 }
@@ -353,8 +383,7 @@ void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending o
     if( !e_stop_queue.isEmpty() ) //if there's an e_stop packet, send it now!
     {
       //e_stop
-      e_stop_queue.readPacket(&p);
-      repeat_queue.insertPacket(&p);
+      e_stop_queue.readPacket(&p); //nothing more to do. e_stop_queue is a repeat_queue, so automatically repeats where necessary.
     }
     else
     {
