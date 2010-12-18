@@ -14,17 +14,19 @@
 #define REPEAT_INTERVAL           11
 #define PERIODIC_REFRESH_INTERVAL 23
 
-class DCCCommandStation
+class DCCPacketScheduler
 {
   private:
     void stashAddress(DCCPacket *p); //remember the address to compare with the next packet
     void repeatPacket(DCCPacket *p); //insert into the appropriate repeat queue
+    byte default_speed_steps;
+    unsigned int last_packet_address;
   public:
   
-    DCCCommandStation(void);
+    DCCPacketScheduler(void);
     
     //for configuration
-    unsigned int setSpeedSteps(byte new_speed_steps);
+    void setDefaultSpeedSteps(byte new_speed_steps);
     void setup(void); //for any post-constructor initialization
     
     //for enqueueing packets

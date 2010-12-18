@@ -55,6 +55,7 @@ class RepeatQueue: public PacketQueue
 {
   public:
     RepeatQueue(byte length=10);
+    bool insertPacket(DCCPacket *packet);
     bool readPacket(DCCPacket *packet);
     bool forget(unsigned int address);
 };

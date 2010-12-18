@@ -196,7 +196,7 @@ ISR(TIMER1_COMPA_vect)
 ///////////////////////////////////////////////
 ///////////////////////////////////////////////
   
-DCCPacketScheduler::DCCPacketScheduler(void) : speed_steps(128)
+DCCPacketScheduler::DCCPacketScheduler(void) : default_speed_steps(128), last_packet_address(0)
 {
   e_stop_queue = RepeatQueue(E_STOP_QUEUE_SIZE);
   high_priority_queue = PacketQueue(HIGH_PRIORITY_QUEUE_SIZE);
@@ -206,7 +206,7 @@ DCCPacketScheduler::DCCPacketScheduler(void) : speed_steps(128)
 }
     
 //for configuration
-unsigned int DCCPacketScheduler::setDefaultSpeedSteps(byte new_speed_steps)
+void DCCPacketScheduler::setDefaultSpeedSteps(byte new_speed_steps)
 {
   default_speed_steps = new_speed_steps;
 }
@@ -222,11 +222,11 @@ void DCCPacketScheduler::stashAddress(DCCPacket *p)
 }
 void DCCPacketScheduler::repeatPacket(DCCPacket *p)
 {
-  switch(p.getKind())
+  switch(p->getKind())
   {
 //    case e_stop_packet_kind: //e_stop packets automatically repeat without having to be put in a special queue
     case speed_packet_kind: //speed packets go to the periodic_refresh queue
-      period_refresh_queue.insertPacket(p);
+      periodic_refresh_queue.insertPacket(p);
       break;
 //    case function_packet_kind: //all other packets go to the repeat_queue
 //    case accessory_packet_kind:
@@ -238,7 +238,7 @@ void DCCPacketScheduler::repeatPacket(DCCPacket *p)
 }
     
 //for enqueueing packets
-bool DCCPacketScheduler::setSpeed(unsigned int address,  char new_speed, byte steps = 0)
+bool DCCPacketScheduler::setSpeed(unsigned int address,  char new_speed, byte steps)
 {
 }
 bool DCCPacketScheduler::setSpeed14(unsigned int address, char new_speed)
@@ -258,7 +258,7 @@ bool DCCPacketScheduler::setSpeed128(unsigned int address, char new_speed)
     speed_data_bytes[1] = new_speed * -1;
   }
   
-  speed_data_bytes[1] |= (0x80*dir); flip bit 0 to indicate direction;
+  speed_data_bytes[1] |= (0x80*dir); //flip bit 0 to indicate direction;
   p.addData(speed_data_bytes,2);
   
   //speed packets get refreshed indefinitely, and so the repeat doesn't need to be set.
@@ -332,7 +332,7 @@ void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending o
       if(doRefresh)
       {
         periodic_refresh_queue.readPacket(&p);
-        if(p.getAddress() == lastPacketAddress) //no immediate repeats!
+        if(p.getAddress() == last_packet_address) //no immediate repeats!
         {
           repeat_queue.insertPacket(&p); //this might look like an error, but it isn't. Ensures that it doesn't get overwritten because of age
           ++packet_counter;
@@ -342,7 +342,7 @@ void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending o
       else if(doRepeat)
       {
         repeat_queue.readPacket(&p);
-        if(p.getAddress() == lastPacketAddress) //no immediate repeats!
+        if(p.getAddress() == last_packet_address) //no immediate repeats!
         {
           repeat_queue.insertPacket(&p); //this might look like an error, but it isn't. Ensures that it doesn't get overwritten because of age, and that it repeats the right number of times.
           ++packet_counter;
@@ -352,7 +352,7 @@ void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending o
       else if(doLow)
       {
         low_priority_queue.readPacket(&p);
-        if(p.getAddress() == lastPacketAddress) //no immediate repeats!
+        if(p.getAddress() == last_packet_address) //no immediate repeats!
         {
           low_priority_queue.insertPacket(&p);
           ++packet_counter;
@@ -362,7 +362,7 @@ void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending o
       else if(doHigh)
       {
         high_priority_queue.readPacket(&p);
-        if(p.getAddress() == lastPacketAddress) //no immediate repeats!
+        if(p.getAddress() == last_packet_address) //no immediate repeats!
         {
           high_priority_queue.insertPacket(&p);
           ++packet_counter;

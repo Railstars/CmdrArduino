@@ -73,7 +73,7 @@ bool TemporalQueue::insertPacket(DCCPacket *packet)
   byte eldest_idx = 0;
   for(byte i = 0; i < size; ++i)
   {
-    if((queue[i].getAddress() == packet->getAddress() && queue[i].getKind() == packet->getKind())
+    if( (queue[i].getAddress() == packet->getAddress()) && (queue[i].getKind() == packet->getKind()) )
     {
       eldest_idx = i;
       break; //short circuit this, we've found it;
