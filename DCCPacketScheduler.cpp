@@ -253,7 +253,23 @@ void DCCPacketScheduler::repeatPacket(DCCPacket *p)
 //for enqueueing packets
 bool DCCPacketScheduler::setSpeed(unsigned int address,  char new_speed, byte steps)
 {
+  byte num_steps = steps;
+  //steps = 0 means use the default; otherwise use the number of steps specified
+  if(!steps)
+    num_steps = default_speed_steps;
+    
+  switch(num_steps)
+  {
+    case 14:
+      return(setSpeed14(address, new_speed));
+    case 28:
+      return(setSpeed28(address, new_speed));
+    case 128:
+      return(setSpeed128(address, new_speed));
+  }
+  return false; //invalid number of steps specified.
 }
+
 bool DCCPacketScheduler::setSpeed14(unsigned int address, char new_speed)
 {
   DCCPacket p(address);
