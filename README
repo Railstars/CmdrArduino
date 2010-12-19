@@ -1,0 +1,4 @@
+To install: Copy the CmdrArduino folder to the location that the Arduino IDE looks for libraries.
+	Mac: /Applications/Arduino.app/Contents/Resources/Java/libraries/
+	Linux: ???
+	Windows: ???
