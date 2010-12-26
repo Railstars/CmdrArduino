@@ -1,7 +1,4 @@
 #include "DCCPacket.h"
-#include <stdlib.h>
-#include <iostream>
-using namespace std;
 
 
 DCCPacket::DCCPacket(unsigned int decoder_address) : address(decoder_address), size(1), kind(idle_packet_kind), repeat(0)
