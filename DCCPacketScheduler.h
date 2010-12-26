@@ -3,6 +3,8 @@
 #include "DCCPacket.h"
 #include "PacketQueue.h"
 #include "WProgram.h"
+#include <avr/io.h>
+#include <avr/interrupt.h>
 
 #define E_STOP_QUEUE_SIZE           2
 #define HIGH_PRIORITY_QUEUE_SIZE    10
@@ -38,11 +40,11 @@ class DCCPacketScheduler
     bool unsetFunction(unsigned int address, byte function);
     //other cool functions to follow. Just get these working first, I think.
     
-    //bool setTurnout(unsigned int address);
-    //bool unsetTurnout(unsigned int address);
+    bool setTurnout(unsigned int address);
+    bool unsetTurnout(unsigned int address);
     
-    //void programCV(unsigned int address, byte CV, byte data);
-        
+    void opsProgramCV(unsigned int address, byte CV, byte data);
+
     //more specific functions
     bool eStop(void); //all locos
     bool eStop(unsigned int address); //just one specific loco
@@ -50,7 +52,7 @@ class DCCPacketScheduler
     //to be called periodically within loop()
     void update(void); //checks queues, puts whatever's pending on the rails via global current_packet. easy-peasy
 
-  private:
+  //private:
   
   //  void stashAddress(DCCPacket *p); //remember the address to compare with the next packet
     void repeatPacket(DCCPacket *p); //insert into the appropriate repeat queue
@@ -59,7 +61,7 @@ class DCCPacketScheduler
   
     byte packet_counter;
     
-    PacketQueue e_stop_queue;
+    EmergencyQueue e_stop_queue;
     PacketQueue high_priority_queue;
     PacketQueue low_priority_queue;
     RepeatQueue repeat_queue;
@@ -67,7 +69,11 @@ class DCCPacketScheduler
     
     //TODO to be completed later.
     //DCC_Packet ops_programming_queue[10];
-
+    
+    //some handy thingers
+    DCCPacket idle_packet;
 };
+
+//DCCPacketScheduler packet_scheduler;
 
 #endif //__DCC_COMMANDSTATION_H__

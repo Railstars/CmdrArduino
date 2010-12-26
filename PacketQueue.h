@@ -11,26 +11,38 @@
 
 class PacketQueue
 {
-  protected:
+  public: //protected:
     DCCPacket *queue;
     byte read_pos;
     byte write_pos;
     byte size;
     byte written; //how many cells have valid data? used for determining full status.  
   public:
-    PacketQueue(byte length=10);
+    PacketQueue(void);
+    
+    virtual void setup(byte);
+    
+    ~PacketQueue(void)
+    {
+      free(queue);
+    }
     
     virtual inline bool isFull(void)
     {
-//      Serial.print("isFull: written=");
-//      Serial.print(written,DEC);
-//      Serial.print(" size=");
-//      Serial.println(size,DEC);
       return (written == size);
     }
     virtual inline bool isEmpty(void)
     {
       return (written == 0);
+    }
+    virtual inline bool notEmpty(void)
+    {
+      return (written != 0);
+    }
+    
+    virtual inline bool notRepeat(unsigned int address)
+    {
+      return (address != queue[read_pos].getAddress());
     }
     
     virtual bool insertPacket(DCCPacket *packet); //makes a local copy, does not take over memory management!
@@ -40,10 +52,11 @@ class PacketQueue
 //A queue that, instead of writing new packets to the end of the queue, simply overwrites the oldest packet in the queue
 class TemporalQueue: public PacketQueue
 {
-  protected:
+  public: //protected:
     byte *age;
   public:
-    TemporalQueue(byte length=10);
+    TemporalQueue(void) : PacketQueue() {};
+    void setup(byte length);
     inline bool isFull(void) { return false; }
     bool insertPacket(DCCPacket *packet);
     bool readPacket(DCCPacket *packet);
@@ -54,10 +67,19 @@ class TemporalQueue: public PacketQueue
 class RepeatQueue: public PacketQueue
 {
   public:
-    RepeatQueue(byte length=10);
+    RepeatQueue(void);
+    //void setup(byte length);
     bool insertPacket(DCCPacket *packet);
     bool readPacket(DCCPacket *packet);
     bool forget(unsigned int address);
+};
+
+//A queue that repeats the topmost packet as many times as is indicated by the packet before moving on
+class EmergencyQueue: public PacketQueue
+{
+  public:
+    EmergencyQueue(void);
+    bool readPacket(DCCPacket *packet);
 };
 
 #endif //__PACKETQUEUE_H__

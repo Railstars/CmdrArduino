@@ -1,15 +1,17 @@
 #include "DCCPacket.h"
+#include <stdlib.h>
+#include <iostream>
+using namespace std;
 
 
 DCCPacket::DCCPacket(unsigned int decoder_address) : address(decoder_address), size(1), kind(idle_packet_kind), repeat(0)
 {
-  data[0] = 0xFF; //is this really the idle packet? TODO
+  data[0] = 0xFF; //default to idle packet
 }
 
 byte DCCPacket::getBitstream(byte rawbytes[]) //returns size of array.
 {
   int total_size = 1; //minimum size
-  //Serial.print("Address: ");
   if(address < 127) //TODO IS THIS RIGHT?
   {
     rawbytes[0] = (byte)address;
@@ -52,9 +54,9 @@ byte DCCPacket::getSize(void)
   return size;
 }
 
-byte DCCPacket::addData(byte data[], byte size) //insert freeform data.
+byte DCCPacket::addData(byte new_data[], byte new_size) //insert freeform data.
 {
-  for(int i = 0; i < size; ++i)
-    data[i] = data[i];
-  size = size;
+  for(int i = 0; i < new_size; ++i)
+    data[i] = new_data[i];
+  size = new_size;
 }

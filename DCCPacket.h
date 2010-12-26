@@ -3,6 +3,8 @@
 
 #include "WProgram.h"
 
+typedef unsigned char byte;
+
 //Packet kinds
 enum packet_kind_t {
   idle_packet_kind,
@@ -16,6 +18,7 @@ enum packet_kind_t {
 
 class DCCPacket
 {
+  public:
    //A DCC packet is at most 6 bytes: 2 of address, three of data, one of XOR
     unsigned int address;// = 0;
     byte data[3];// = {0,0,0};
@@ -32,7 +35,7 @@ class DCCPacket
     byte getSize(void);
     inline unsigned int getAddress(void) { return address; }
     inline void setAddress(unsigned int new_address) { address = new_address; }
-    byte addData(byte data[], byte size); //insert freeform data.
+    byte addData(byte new_data[], byte new_size); //insert freeform data.
     inline void setKind(packet_kind_t new_kind) { kind = new_kind; }
     inline packet_kind_t getKind(void) { return kind; }
     inline void setRepeat(byte new_repeat) { repeat = new_repeat; }

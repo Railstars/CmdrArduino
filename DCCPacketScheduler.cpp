@@ -7,7 +7,7 @@
  * Currently, the sketch produces 19 idle packets followed by a baseline command packet instructing
  * the loco at address 03 to move forward at speed step 15 of 28.
  * As written, the sketch does not seem to work. Oscilloscope analysis suggests that the waveform
- * has the correct shape, and the commented out Serial.print commands reveal that the packet is well-formed.
+ * has the correct shape, and the commented out //Serial.print commands reveal that the packet is well-formed.
  * And yet, a freshly reset decoder placed on the rails does not respond.
  * 
  * Hardware requirements:
@@ -56,9 +56,9 @@ DCC_output_state_t DCC_state = dos_idle; //just to start out
 /// The currently queued packet to be put on the rails. Default is a reset packet.
 byte current_packet[6] = {0,0,0,0,0,0};
 /// How many data bytes in the queued packet?
-volatile byte current_packet_size = 3;
+volatile byte current_packet_size = 0;
 /// How many bytes remain to be put on the rails?
-volatile byte current_byte_counter = 3;
+volatile byte current_byte_counter = 0;
 /// How many bits remain in the current data byte/preamble before changing states?
 volatile byte current_bit_counter = 14; //init to 14 1's for the preamble
 /// A fixed-content packet to send when idle
@@ -95,13 +95,13 @@ unsigned int zero_low_count=199; //100us
 
 //// Setup phase: configure and enable timer1 CTC interrupt, set OC1A and OC1B to toggle on CTC
 void setup_DCC_waveform_generator() {
-  //Serial.begin(115200); //for debugging
+  ////Serial.begin(115200); //for debugging
 
   
   pinMode(9,OUTPUT); // OC1A = Arduino pin 9; defaults to outputting low
 
   // Configure timer1 in CTC mode, for waveform generation, set to toggle OC1A, OC1B, at /8 prescalar, interupt at CTC
-  TCCR1A = (0<<COM1A1) | (1<<COM1A0) | (0<<COM1B1) | (1<<COM1B0) | (0<<WGM11) | (0<<WGM10);
+  TCCR1A = (0<<COM1A1) | (1<<COM1A0) | (0<<COM1B1) | (0<<COM1B0) | (0<<WGM11) | (0<<WGM10);
   TCCR1B = (0<<ICNC1)  | (0<<ICES1)  | (0<<WGM13)  | (1<<WGM12)  | (0<<CS12)  | (1<<CS11) | (0<<CS10);
 
   // start by outputting a '1'
@@ -140,6 +140,7 @@ ISR(TIMER1_COMPA_vect)
         {
           ////Serial.println("X");
           OCR1A=one_count; //just send ones if we don't know what else to do. safe bet.
+          ////Serial.print(1);
           break;
         }
         DCC_state = dos_send_preamble; //and fall through to dos_send_preamble
@@ -196,13 +197,13 @@ ISR(TIMER1_COMPA_vect)
 ///////////////////////////////////////////////
 ///////////////////////////////////////////////
   
-DCCPacketScheduler::DCCPacketScheduler(void) : default_speed_steps(128), last_packet_address(0)
+DCCPacketScheduler::DCCPacketScheduler(void) : packet_counter(1), default_speed_steps(128), last_packet_address(255)
 {
-  e_stop_queue = RepeatQueue(E_STOP_QUEUE_SIZE);
-  high_priority_queue = PacketQueue(HIGH_PRIORITY_QUEUE_SIZE);
-  low_priority_queue = PacketQueue(LOW_PRIORITY_QUEUE_SIZE);
-  repeat_queue = RepeatQueue(REPEAT_QUEUE_SIZE);
-  periodic_refresh_queue = TemporalQueue(PERIODIC_REFRESH_QUEUE_SIZE);
+  e_stop_queue.setup(E_STOP_QUEUE_SIZE);
+  high_priority_queue.setup(HIGH_PRIORITY_QUEUE_SIZE);
+  low_priority_queue.setup(LOW_PRIORITY_QUEUE_SIZE);
+  repeat_queue.setup(REPEAT_QUEUE_SIZE);
+  periodic_refresh_queue.setup(PERIODIC_REFRESH_QUEUE_SIZE);
 }
     
 //for configuration
@@ -224,11 +225,14 @@ void DCCPacketScheduler::setup(void) //for any post-constructor initialization
   //reset packet: address 0, data 0, XOR 0;
   p.addData(data,1);
   p.setRepeat(20);
+  p.setKind(reset_packet_kind);
   e_stop_queue.insertPacket(&p);
   
   //idle packet: address 0, data 0xFF, XOR 0;
   data[0] = 0xFF;
+  p.addData(data,1);
   p.setRepeat(10);
+  p.setKind(idle_packet_kind);
   e_stop_queue.insertPacket(&p); //e_stop_queue will be empty, so no need to check if insertion was OK.
 }
 
@@ -237,14 +241,16 @@ void DCCPacketScheduler::repeatPacket(DCCPacket *p)
 {
   switch(p->getKind())
   {
-//    case e_stop_packet_kind: //e_stop packets automatically repeat without having to be put in a special queue
+    case idle_packet_kind:
+    case e_stop_packet_kind: //e_stop packets automatically repeat without having to be put in a special queue
+      break;
     case speed_packet_kind: //speed packets go to the periodic_refresh queue
       periodic_refresh_queue.insertPacket(p);
       break;
-//    case function_packet_kind: //all other packets go to the repeat_queue
-//    case accessory_packet_kind:
-//    case reset_packet_kind:
-//    case other_packet_kind:
+    case function_packet_kind: //all other packets go to the repeat_queue
+    case accessory_packet_kind:
+    case reset_packet_kind:
+    case other_packet_kind:
     default:
       repeat_queue.insertPacket(p);
   }
@@ -321,6 +327,7 @@ bool DCCPacketScheduler::setSpeed28(unsigned int address, char new_speed)
     
   //speed packets get refreshed indefinitely, and so the repeat doesn't need to be set.
   //speed packets go to the high proirity queue
+  //return(high_priority_queue.insertPacket(&p));
   return(high_priority_queue.insertPacket(&p));
 }
 
@@ -369,7 +376,7 @@ bool DCCPacketScheduler::eStop(void)
     //add data, repeat, etc.
     e_stop_packet.addData(data,1);
     e_stop_packet.setKind(e_stop_packet_kind);
-    e_stop_queue.insertPacket(&e_stop_packet);
+    //e_stop_queue.insertPacket(&e_stop_packet);
 }
     
 bool DCCPacketScheduler::eStop(unsigned int address)
@@ -377,12 +384,8 @@ bool DCCPacketScheduler::eStop(unsigned int address)
     DCCPacket e_stop_packet = DCCPacket(address);
     //add data, repeat, etc.
     e_stop_packet.setKind(e_stop_packet_kind);
-    e_stop_queue.insertPacket(&e_stop_packet);
+    //e_stop_queue.insertPacket(&e_stop_packet);
 }
-
-//TODO
-//void DCCPacketScheduler::ResetLayout(void)
-// sends a number of reset and idle packets through the e_stop_queue.
 
 //to be called periodically within loop()
 void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending on the rails via global current_packet. easy-peasy
@@ -403,64 +406,38 @@ void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending o
     }
     else
     {
-      bool doHigh = !high_priority_queue.isEmpty();
-      bool doLow = !((packet_counter % LOW_PRIORITY_INTERVAL) || low_priority_queue.isEmpty());
-      bool doRepeat = !((packet_counter % REPEAT_INTERVAL) || repeat_queue.isEmpty());
-      bool doRefresh = !((packet_counter % PERIODIC_REFRESH_INTERVAL) || periodic_refresh_queue.isEmpty());
-      //bool doPOM = !((packet_counter % POM_INTERVAL) || pom_queue.isEmpty());
-      //boo doAccessory = !((packet_counter % ACCESSORY_INTERVAL) || accessory_queue.isEmpty());
-      
+      bool doHigh = high_priority_queue.notEmpty() && high_priority_queue.notRepeat(last_packet_address);
+      bool doLow = low_priority_queue.notEmpty() && low_priority_queue.notRepeat(last_packet_address) && !((packet_counter % LOW_PRIORITY_INTERVAL) && doHigh);
+      bool doRepeat = repeat_queue.notEmpty() && repeat_queue.notRepeat(last_packet_address) && !((packet_counter % REPEAT_INTERVAL) && doLow);
+      bool doRefresh = periodic_refresh_queue.notEmpty() && periodic_refresh_queue.notRepeat(last_packet_address) && !((packet_counter % PERIODIC_REFRESH_INTERVAL) && doRepeat);
       //examine queues in order from lowest priority to highest.
       if(doRefresh)
       {
         periodic_refresh_queue.readPacket(&p);
-        if(p.getAddress() && (p.getAddress() == last_packet_address)) //no immediate repeats to same address, unless this is a broadcast packet 
-        {
-          periodic_refresh_queue.insertPacket(&p); //this might look like an error, but it isn't. Ensures that it doesn't get overwritten because of age
-          ++packet_counter;
-          return;
-        }
+        ++packet_counter;
       }
       else if(doRepeat)
       {
         repeat_queue.readPacket(&p);
-        if(p.getAddress() && (p.getAddress() == last_packet_address)) //no immediate repeats!
-        {
-          repeat_queue.insertPacket(&p); //this might look like an error, but it isn't. Ensures that it repeats the right number of times.
-          ++packet_counter;
-          return;
-        }
+        ++packet_counter;
       }
       else if(doLow)
       {
         low_priority_queue.readPacket(&p);
-        if(p.getAddress() && (p.getAddress() == last_packet_address)) //no immediate repeats!
-        {
-          low_priority_queue.insertPacket(&p); //if a repeat, requeue it
-          ++packet_counter;
-          return;
-        }
+        ++packet_counter;
       }
       else if(doHigh)
       {
         high_priority_queue.readPacket(&p);
-        if(p.getAddress() && (p.getAddress() == last_packet_address)) //no immediate repeats!
-        {
-          high_priority_queue.insertPacket(&p); //if a repeat, requeue it
-          ++packet_counter;
-          return;
-        }
+        ++packet_counter;
       }
-      else //no packets are ready, so send an Idle packet
-      {
-      // no need to do anything, since the default values of p make it an idle packet
-      }
-      
-      repeatPacket(&p); //re-insert the packet into the appropriate repeat queue
+      //if none of these conditions hold, DCCPackets initialize to the idle packet, so that's what'll get sent.
+      //++packet_counter; //it's a byte; let it overflow, that's OK.
+      //enqueue the packet for repitition, if necessary:
+      repeatPacket(&p);
     }
-    
     last_packet_address = p.getAddress(); //remember the address to compare with the next packet
-    ++packet_counter; //it's a byte; let it overflow, that's OK.    
     current_packet_size = p.getBitstream(current_packet); //feed to the starving ISR.
+    current_byte_counter = current_packet_size;
   }
 }
