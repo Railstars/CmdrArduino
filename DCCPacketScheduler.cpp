@@ -138,9 +138,8 @@ ISR(TIMER1_COMPA_vect)
       case dos_idle:
         if(!current_byte_counter) //if no new packet
         {
-          ////Serial.println("X");
+          //Serial.println("X");
           OCR1A=one_count; //just send ones if we don't know what else to do. safe bet.
-          ////Serial.print(1);
           break;
         }
         DCC_state = dos_send_preamble; //and fall through to dos_send_preamble
@@ -226,14 +225,14 @@ void DCCPacketScheduler::setup(void) //for any post-constructor initialization
   p.addData(data,1);
   p.setRepeat(20);
   p.setKind(reset_packet_kind);
-  e_stop_queue.insertPacket(&p);
+  //TODO e_stop_queue.insertPacket(&p);
   
   //idle packet: address 0, data 0xFF, XOR 0;
   data[0] = 0xFF;
   p.addData(data,1);
   p.setRepeat(10);
   p.setKind(idle_packet_kind);
-  e_stop_queue.insertPacket(&p); //e_stop_queue will be empty, so no need to check if insertion was OK.
+  //TODO e_stop_queue.insertPacket(&p); //e_stop_queue will be empty, so no need to check if insertion was OK.
 }
 
 //helper functions
@@ -290,6 +289,7 @@ bool DCCPacketScheduler::setSpeed14(unsigned int address, char new_speed)
   if(new_speed) //leave at 0 for stop.
     speed_data_bytes[0] |= ((13*speed) / 127)+2; //convert from [1-127] to [2-15]
   speed_data_bytes[0] |= (0x20*dir); //flip bit 3 to indicate direction;
+  //Serial.println(speed_data_bytes[0],BIN);
   p.addData(speed_data_bytes,1);
 
   p.setRepeat(SPEED_REPEAT);
@@ -319,6 +319,7 @@ bool DCCPacketScheduler::setSpeed28(unsigned int address, char new_speed)
     speed_data_bytes[0] = (speed_data_bytes[0]&0xE0) | ((speed_data_bytes[0]&0x1F) >> 1) | ((speed_data_bytes[0]&0x01) << 4);
   }
   speed_data_bytes[0] |= (0x20*dir); //flip bit 3 to indicate direction;
+  //Serial.println(speed_data_bytes[0],BIN);
   p.addData(speed_data_bytes,1);
   
   p.setRepeat(SPEED_REPEAT);
@@ -344,6 +345,9 @@ bool DCCPacketScheduler::setSpeed128(unsigned int address, char new_speed)
   
   speed_data_bytes[1] |= (0x80*dir); //flip bit 0 to indicate direction;
   p.addData(speed_data_bytes,2);
+  //Serial.print(speed_data_bytes[0],BIN);
+  //Serial.print(" ");
+  //Serial.println(speed_data_bytes[1],BIN);
   
   p.setRepeat(SPEED_REPEAT);
   
@@ -407,9 +411,12 @@ void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending o
     else
     {
       bool doHigh = high_priority_queue.notEmpty() && high_priority_queue.notRepeat(last_packet_address);
-      bool doLow = low_priority_queue.notEmpty() && low_priority_queue.notRepeat(last_packet_address) && !((packet_counter % LOW_PRIORITY_INTERVAL) && doHigh);
-      bool doRepeat = repeat_queue.notEmpty() && repeat_queue.notRepeat(last_packet_address) && !((packet_counter % REPEAT_INTERVAL) && doLow);
-      bool doRefresh = periodic_refresh_queue.notEmpty() && periodic_refresh_queue.notRepeat(last_packet_address) && !((packet_counter % PERIODIC_REFRESH_INTERVAL) && doRepeat);
+      bool doLow = low_priority_queue.notEmpty() && low_priority_queue.notRepeat(last_packet_address) &&
+                  !((packet_counter % LOW_PRIORITY_INTERVAL) && doHigh);
+      bool doRepeat = repeat_queue.notEmpty() && repeat_queue.notRepeat(last_packet_address) &&
+                  !((packet_counter % REPEAT_INTERVAL) && (doHigh || doLow));
+      bool doRefresh = periodic_refresh_queue.notEmpty() && periodic_refresh_queue.notRepeat(last_packet_address) &&
+                  !((packet_counter % PERIODIC_REFRESH_INTERVAL) && (doHigh || doLow || doRepeat));
       //examine queues in order from lowest priority to highest.
       if(doRefresh)
       {
@@ -438,6 +445,13 @@ void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending o
     }
     last_packet_address = p.getAddress(); //remember the address to compare with the next packet
     current_packet_size = p.getBitstream(current_packet); //feed to the starving ISR.
+    //output the packet, for checking:
+    //for(byte i = 0; i < current_packet_size; ++i)
+    //{
+    //  Serial.print(current_packet[i],BIN);
+    //  Serial.print(" ");
+    //}
+    //Serial.println("");
     current_byte_counter = current_packet_size;
   }
 }

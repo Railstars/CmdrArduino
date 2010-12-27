@@ -17,17 +17,20 @@ void PacketQueue::setup(byte length)
 
 bool PacketQueue::insertPacket(DCCPacket *packet)
 {
-//   //First: Overwrite any packet with the same address and kind; if no such packet THEN hitup the packet at write_pos
-//   for(byte i = read_pos; i < read_pos+written; ++i)
-//   {
-//     byte queue_address = i%size;
-//     if( (queue[queue_address].getAddress() == packet->getAddress()) && (queue[queue_address].getKind() == packet->getKind()))
-//     {
-//       memcpy(&queue[queue_address],packet,sizeof(DCCPacket));
-//       //do not increment written!
-//       return true;
-//     }
-//   }
+   //First: Overwrite any packet with the same address and kind; if no such packet THEN hitup the packet at write_pos
+  byte i = read_pos;
+  while(i != (read_pos+written)%(size+1) ) //size+1 so we can check the last slot, too…
+  {
+    if( (queue[i].getAddress() == packet->getAddress()) && (queue[i].getKind() == packet->getKind()))
+    {
+      memcpy(&queue[i],packet,sizeof(DCCPacket));
+      //do not increment written or modify write_pos
+      return true;
+    }
+    i = (i+1)%size;
+  }
+  
+  //else, tack it on to the end
   if(!isFull())
   {
     //else, just write it at the end of the queue.
@@ -37,6 +40,22 @@ bool PacketQueue::insertPacket(DCCPacket *packet)
     return true;
   }
   return false;
+}
+
+void PacketQueue::printQueue(void)
+{
+  byte i, j;
+  for(i = 0; i < size; ++i)
+  {
+    for(j = 0; j < queue[i].size; ++j)
+    {
+      Serial.print(queue[i].data[j],BIN);
+      Serial.print(" ");
+    }
+    if(i == read_pos) Serial.println("   r");
+    else if(i == write_pos) Serial.println("    w");
+    else Serial.println("");
+  }
 }
 
 bool PacketQueue::readPacket(DCCPacket *packet)
