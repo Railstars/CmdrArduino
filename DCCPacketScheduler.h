@@ -36,8 +36,8 @@ class DCCPacketScheduler
     bool setSpeed14(unsigned int address, char new_speed); //new_speed: [-13,13]
     bool setSpeed28(unsigned int address, char new_speed); //new_speed: [-28,28]
     bool setSpeed128(unsigned int address, char new_speed); //new_speed: [-127,127]
-    bool setFunction(unsigned int address, byte function);
-    bool unsetFunction(unsigned int address, byte function);
+    bool setFunctionG1(unsigned int address, byte functions);
+    bool setFunctionG2(unsigned int address, byte functions);
     //other cool functions to follow. Just get these working first, I think.
     
     bool setTurnout(unsigned int address);

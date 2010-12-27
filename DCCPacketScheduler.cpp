@@ -358,13 +358,40 @@ bool DCCPacketScheduler::setSpeed128(unsigned int address, char new_speed)
   return(high_priority_queue.insertPacket(&p));
 }
     
-bool DCCPacketScheduler::setFunction(unsigned int address, byte function)
+bool DCCPacketScheduler::setFunctionG1(unsigned int address, byte functions)
 {
+  //
+  DCCPacket p(address);
+  byte data[] = {0x80};
+  
+  data[0] |= functions & 0x1F;
+  
+  p.addData(data,1);
+  p.setKind(function_packet_kind);
+  p.setRepeat(FUNCTION_REPEAT);
+  return(low_priority_queue.insertPacket(&p));
 }
-    
-bool DCCPacketScheduler::unsetFunction(unsigned int address, byte function)
+
+
+bool DCCPacketScheduler::setFunctionG2(unsigned int address, byte functions)
 {
+  DCCPacket p(address);
+  byte data[] = {0xA0};
+  
+  //least significant four functions (F5--F8)
+  data[0] |= functions & 0x0F;
+  
+  p.addData(data,1);
+  p.setKind(function_packet_kind);
+  p.setRepeat(FUNCTION_REPEAT);
+  if(!low_priority_queue.insertPacket(&p))
+    return false;
+
+  //most significant four functions (F9--F12)
+  data[0] |= 0x10 & ((functions&0xF0)>>4);
+  return(low_priority_queue.insertPacket(&p));
 }
+
 //other cool functions to follow. Just get these working first, I think.
 
 //bool DCCPacketScheduler::setTurnout(unsigned int address)
