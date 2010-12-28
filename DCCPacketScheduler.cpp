@@ -121,7 +121,7 @@ ISR(TIMER1_COMPA_vect)
   
   //remember, anything we set for OCR1A takes effect IMMEDIATELY, so we are working within the cycle we are setting.
   //first, check to see if we're in the second half of a byte; only act on the first half of a byte
-  if(!(PINB & (1<<PB1))) //if the pin is low, we need to use a different zero counter to enable streched-zero DC operation
+  if(!(PINB & (1<<PORTB1))) //if the pin is low, we need to use a different zero counter to enable streched-zero DC operation
   {
     if(OCR1A == zero_high_count) //if the pin is low and outputting a zero, we need to be using zero_low_count
       {
