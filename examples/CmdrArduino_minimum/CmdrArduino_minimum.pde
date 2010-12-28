@@ -34,7 +34,7 @@ void loop() {
     //toggle!
     F0 = (F0+1)%2;
     Serial.println(F0,BIN);
-    dps.setFunctionG1(3,F0<<4);
+    dps.setFunctions0to4(3,F0<<4);
   }
   prev_state = button_state;
 

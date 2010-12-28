@@ -275,7 +275,7 @@ bool DCCPacketScheduler::setSpeed(unsigned int address,  char new_speed, byte st
   return false; //invalid number of steps specified.
 }
 
-bool DCCPacketScheduler::setSpeed14(unsigned int address, char new_speed)
+bool DCCPacketScheduler::setSpeed14(unsigned int address, char new_speed, bool F0)
 {
   DCCPacket p(address);
   byte dir = 1;
@@ -357,10 +357,18 @@ bool DCCPacketScheduler::setSpeed128(unsigned int address, char new_speed)
   //speed packets go to the high proirity queue
   return(high_priority_queue.insertPacket(&p));
 }
-    
-bool DCCPacketScheduler::setFunctionG1(unsigned int address, byte functions)
+
+bool DCCPacketScheduler::setFunctions(unsigned int address, byte F0to4, byte F5to8, byte F9to12)
 {
-  //
+  if(setFunctions0to4(address, F0to4))
+    if(setFunctions5to8(address, F5to8))
+      if(setFunctions9to12(address, F9to12))
+        return true;
+  return false;
+}
+
+bool DCCPacketScheduler::setFunctions0to4(unsigned int address, byte functions)
+{
   DCCPacket p(address);
   byte data[] = {0x80};
   
@@ -373,24 +381,33 @@ bool DCCPacketScheduler::setFunctionG1(unsigned int address, byte functions)
 }
 
 
-bool DCCPacketScheduler::setFunctionG2(unsigned int address, byte functions)
+bool DCCPacketScheduler::setFunctions5to8(unsigned int address, byte functions)
 {
   DCCPacket p(address);
   byte data[] = {0xA0};
   
-  //least significant four functions (F5--F8)
   data[0] |= functions & 0x0F;
   
   p.addData(data,1);
   p.setKind(function_packet_kind);
   p.setRepeat(FUNCTION_REPEAT);
-  if(!low_priority_queue.insertPacket(&p))
-    return false;
-
-  //most significant four functions (F9--F12)
-  data[0] |= 0x10 & ((functions&0xF0)>>4);
   return(low_priority_queue.insertPacket(&p));
 }
+
+bool DCCPacketScheduler::setFunctions9to12(unsigned int address, byte functions)
+{
+  DCCPacket p(address);
+  byte data[] = {0xB0};
+  
+  //least significant four functions (F5--F8)
+  data[0] |= functions & 0xF0;
+  
+  p.addData(data,1);
+  p.setKind(function_packet_kind);
+  p.setRepeat(FUNCTION_REPEAT);
+  return(low_priority_queue.insertPacket(&p));
+}
+
 
 //other cool functions to follow. Just get these working first, I think.
 
