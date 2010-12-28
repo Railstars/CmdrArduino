@@ -9,11 +9,12 @@ setSpeed		KEYWORD2
 setSpeed14		KEYWORD2
 setSpeed28		KEYWORD2
 setSpeed128		KEYWORD2
-setFunction		KEYWORD2
-unsetFunction		KEYWORD2
+setFunctions		KEYWORD2
+setFunctions0to4	KEYWORD2
+setFunctions5to8	KEYWORD2
+setFunctions9to12	KEYWORD2
 setTurnout		KEYWORD2
 unsetTurnout		KEYWORD2
 programCV		KEYWORD2
-eStop			KEYWORD2
 eStop			KEYWORD2
 update			KEYWORD2
