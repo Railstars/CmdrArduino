@@ -33,11 +33,18 @@ class DCCPacketScheduler
     
     //for enqueueing packets
     bool setSpeed(unsigned int address,  char new_speed, byte steps = 0); //new_speed: [-127,127]
-    bool setSpeed14(unsigned int address, char new_speed); //new_speed: [-13,13]
+    bool setSpeed14(unsigned int address, char new_speed, bool F0=true); //new_speed: [-13,13], and optionally F0 settings.
     bool setSpeed28(unsigned int address, char new_speed); //new_speed: [-28,28]
     bool setSpeed128(unsigned int address, char new_speed); //new_speed: [-127,127]
     bool setFunctionG1(unsigned int address, byte functions);
     bool setFunctionG2(unsigned int address, byte functions);
+    
+    //the function methods are NOT stateful; you must specify all functions each time you call one
+    //keeping track of function state is the responsibility of the calling program.
+    bool setFunctions(unsigned int address, byte F0to4, byte F5to9=0x00, byte F9to12=0x00);
+    bool setFunctions0to4(unsigned int address, byte functions);
+    bool setFunctions5to8(unsigned int address, byte functions);
+    bool setFunctions9to12(unsigned int address, byte functions);
     //other cool functions to follow. Just get these working first, I think.
     
     bool setTurnout(unsigned int address);

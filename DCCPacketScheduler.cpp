@@ -225,14 +225,14 @@ void DCCPacketScheduler::setup(void) //for any post-constructor initialization
   p.addData(data,1);
   p.setRepeat(20);
   p.setKind(reset_packet_kind);
-  //TODO e_stop_queue.insertPacket(&p);
+  e_stop_queue.insertPacket(&p);
   
   //idle packet: address 0, data 0xFF, XOR 0;
   data[0] = 0xFF;
   p.addData(data,1);
   p.setRepeat(10);
   p.setKind(idle_packet_kind);
-  //TODO e_stop_queue.insertPacket(&p); //e_stop_queue will be empty, so no need to check if insertion was OK.
+  e_stop_queue.insertPacket(&p); //e_stop_queue will be empty, so no need to check if insertion was OK.
 }
 
 //helper functions
