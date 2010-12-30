@@ -219,17 +219,17 @@ void DCCPacketScheduler::setup(void) //for any post-constructor initialization
   //use the e_stop_queue to do this, to ensure these packets go out first!
   
   DCCPacket p;
-  byte data[] = {0};
+  byte data[] = {0x00};
   
-  //reset packet: address 0, data 0, XOR 0;
+  //reset packet: address 0x00, data 0x00, XOR 0x00; S 9.2 line 75
   p.addData(data,1);
+  p.setAddress(0x00);
   p.setRepeat(20);
   p.setKind(reset_packet_kind);
   e_stop_queue.insertPacket(&p);
   
-  //idle packet: address 0, data 0xFF, XOR 0;
-  data[0] = 0xFF;
-  p.addData(data,1);
+  //idle packet: address 0xFF, data 0x00, XOR 0xFF; S 9.2 line 90
+  p.setAddress(0xFF);
   p.setRepeat(10);
   p.setKind(idle_packet_kind);
   e_stop_queue.insertPacket(&p); //e_stop_queue will be empty, so no need to check if insertion was OK.

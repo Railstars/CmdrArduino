@@ -9,11 +9,11 @@ DCCPacket::DCCPacket(unsigned int decoder_address) : address(decoder_address), s
 byte DCCPacket::getBitstream(byte rawbytes[]) //returns size of array.
 {
   int total_size = 1; //minimum size
-  if(address <= 127) //TODO IS THIS RIGHT?
+  if(address <= 127) //addresses of 127 or higher are 14-bit "extended" addresses
   {
     rawbytes[0] = (byte)address;
   }
-  else //we have an extended ("4-digit") address
+  else //we have a 14-bit extended ("4-digit") address
   {
     rawbytes[0] = (byte)((address >> 8)|0xC0);
     rawbytes[1] = (byte)(address & 0xFF);
