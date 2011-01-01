@@ -413,7 +413,11 @@ bool DCCPacketScheduler::setFunctions9to12(unsigned int address, byte functions)
 
 //bool DCCPacketScheduler::setTurnout(unsigned int address)
 //bool DCCPacketScheduler::unsetTurnout(unsigned int address)
-//void DCCPacketScheduler::programCV(unsigned int address, byte CV, byte data)
+
+bool DCCPacketScheduler::opsProgramCV(unsigned int address, byte CV, byte data)
+{
+  
+}
     
 //more specific functions
 
