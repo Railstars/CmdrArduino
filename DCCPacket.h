@@ -13,6 +13,7 @@ enum packet_kind_t {
   function_packet_kind,
   accessory_packet_kind,
   reset_packet_kind,
+  ops_mode_programming_kind,
   other_packet_kind
 };
 
