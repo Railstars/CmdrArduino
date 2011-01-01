@@ -52,6 +52,9 @@ class DCCPacketScheduler
     bool unsetBasicAccessory(unsigned int address, byte function);
     bool setExtendedAccessory(unsigned int address, byte data);
     
+    bool opsProgramBasicAccessoryCV(unsigned int address, byte function, unsigned int CV, byte CV_data);
+    bool opsProgramExtendedAccessoryCV(unsigned int address, unsigned int CV, byte CV_data);
+    
     void opsProgramCV(unsigned int address, byte CV, byte data);
 
     //more specific functions

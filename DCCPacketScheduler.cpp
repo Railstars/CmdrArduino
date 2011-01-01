@@ -438,6 +438,41 @@ bool DCCPacketScheduler::setExtendedAccessory(unsigned int address, byte data)
   
   return(low_priority_queue.insertPacket(&p));
 }
+
+bool DCCPacketScheduler::opsProgramBasicAccessoryCV(unsigned int address, byte function, unsigned int CV, byte CV_data)
+{
+  //{preamble} 0 10AAAAAA 0 1AAACDDD 0 (1110CCVV 0 VVVVVVVV 0 DDDDDDDD) 0 EEEEEEEE 1
+  //stuff the CDDD bits into data[0]
+  DCCAccessoryPacket p(address);
+  byte data[] = {0x08,0xEC,0x00,0x00};
+  
+  data[0] |= function&0x07; //C always = 1 when programming
+  data[1] |= (CV&0x3FF)>>8;
+  data[2] = CV&0xFF;
+  data[3] = CV_data;
+  
+  p.addData(data,4);
+  p.setRepeat(OPS_MODE_PROGRAM_REPEAT);
+  
+  return(low_priority_queue.insertPacket(&p));
+}
+
+bool DCCPacketScheduler::opsProgramExtendedAccessoryCV(unsigned int address, unsigned int CV, byte CV_data)
+{
+  //{preamble} 0 10AAAAAA 0 0AAA0AA1 0 (1110CCVV	0	VVVVVVVV	0	DDDDDDDD) 0 EEEEEEEE 1
+  //stuff the CDDD bits into data[0]
+  DCCExtendedAccessoryPacket p(address);
+  byte data[] = {0xEC,0x00,0x00};
+  
+  data[0] |= (CV&0x3FF)>>8;
+  data[1] = CV&0xFF;
+  data[2] = CV_data;
+  
+  p.addData(data,3);
+  p.setRepeat(OPS_MODE_PROGRAM_REPEAT);
+  
+  return(low_priority_queue.insertPacket(&p));
+}
     
 
 bool DCCPacketScheduler::eStop(void)
