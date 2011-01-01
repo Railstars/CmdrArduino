@@ -3,12 +3,6 @@
 /*
  * DCC Waveform Generator
  *
- * This sketch puts a basic DCC waveform out on Arduino digital pins 9 and 10.
- * Currently, the sketch produces 19 idle packets followed by a baseline command packet instructing
- * the loco at address 03 to move forward at speed step 15 of 28.
- * As written, the sketch does not seem to work. Oscilloscope analysis suggests that the waveform
- * has the correct shape, and the commented out //Serial.print commands reveal that the packet is well-formed.
- * And yet, a freshly reset decoder placed on the rails does not respond.
  * 
  * Hardware requirements:
  *     *A DCC booster with Rail A and Rail B wired to pin 9 and 10 respectively.
@@ -93,10 +87,8 @@ unsigned int zero_high_count=199; //100us
 unsigned int zero_low_count=199; //100us
 
 
-//// Setup phase: configure and enable timer1 CTC interrupt, set OC1A and OC1B to toggle on CTC
+/// Setup phase: configure and enable timer1 CTC interrupt, set OC1A and OC1B to toggle on CTC
 void setup_DCC_waveform_generator() {
-  ////Serial.begin(115200); //for debugging
-
   
   pinMode(9,OUTPUT); // OC1A = Arduino pin 9; defaults to outputting low
 
@@ -249,6 +241,7 @@ void DCCPacketScheduler::repeatPacket(DCCPacket *p)
     case function_packet_kind: //all other packets go to the repeat_queue
     case accessory_packet_kind:
     case reset_packet_kind:
+    case ops_mode_programming_kind:
     case other_packet_kind:
     default:
       repeat_queue.insertPacket(p);
@@ -414,9 +407,27 @@ bool DCCPacketScheduler::setFunctions9to12(unsigned int address, byte functions)
 //bool DCCPacketScheduler::setTurnout(unsigned int address)
 //bool DCCPacketScheduler::unsetTurnout(unsigned int address)
 
-bool DCCPacketScheduler::opsProgramCV(unsigned int address, byte CV, byte data)
+bool DCCPacketScheduler::opsProgramCV(unsigned int address, unsigned int CV, byte CV_data)
 {
+  //format of packet:
+  // {preamble} 0 [ AAAAAAAA ] 0 111011VV 0 VVVVVVVV 0 DDDDDDDD 0 EEEEEEEE 1 (write)
+  // {preamble} 0 [ AAAAAAAA ] 0 111001VV 0 VVVVVVVV 0 DDDDDDDD 0 EEEEEEEE 1 (verify)
+  // {preamble} 0 [ AAAAAAAA ] 0 111010VV 0 VVVVVVVV 0 DDDDDDDD 0 EEEEEEEE 1 (bit manipulation)
+  // only concerned with "write" form here.
   
+  DCCPacket p(address);
+  byte data[] = {0xEC, 0x00, 0x00};
+  
+  // split the CV address up among data bytes 0 and 1
+  data[0] |= ((CV-1) & 0x3FF) >> 8;
+  data[1] = (CV-1) & 0xFF;
+  data[2] = CV_data;
+  
+  p.addData(data,3);
+  p.setKind(ops_mode_programming_kind);
+  p.setRepeat(OPS_MODE_PROGRAMMING_REPEAT);
+  
+  return(low_priority_queue.insertPacket(&p));
 }
     
 //more specific functions

@@ -19,6 +19,7 @@
 #define SPEED_REPEAT      3
 #define FUNCTION_REPEAT   3
 #define E_STOP_REPEAT     5
+#define OPS_MODE_PROGRAMMING_REPEAT 3
 #define OTHER_REPEAT      2
 
 class DCCPacketScheduler
@@ -50,7 +51,7 @@ class DCCPacketScheduler
     bool setTurnout(unsigned int address);
     bool unsetTurnout(unsigned int address);
     
-    bool opsProgramCV(unsigned int address, byte CV, byte data);
+    bool opsProgramCV(unsigned int address, unsigned int CV, byte CV_data);
 
     //more specific functions
     bool eStop(void); //all locos
