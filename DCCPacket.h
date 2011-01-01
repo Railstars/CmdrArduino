@@ -18,7 +18,7 @@ enum packet_kind_t {
 
 class DCCPacket
 {
-  private:
+  public: //protected:
    //A DCC packet is at most 6 bytes: 2 of address, three of data, one of XOR
     unsigned int address;
     byte data[3];
@@ -42,20 +42,18 @@ class DCCPacket
 
 class DCCAccessoryPacket : public DCCPacket
 {
-  private:
   public:
     DCCAccessoryPacket(unsigned int address=0);
     byte getBitstream(byte rawbytes[]);
     void addData(byte new_data);
-}
+};
 
 class DCCExtendedAccessoryPacket : public DCCPacket
 {
-  private:
   public:
     DCCExtendedAccessoryPacket(unsigned int address=0);
     byte getBitstream(byte rawbytes[]);
     void addData(byte new_data);
-}
+};
 
 #endif //__DCCPACKET_H__

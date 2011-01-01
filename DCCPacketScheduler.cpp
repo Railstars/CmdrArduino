@@ -418,7 +418,7 @@ bool DCCPacketScheduler::setBasicAccessory(unsigned int address, byte function)
   p.addData(0x08 | (function&0x07));  
   p.setRepeat(ACCESSORY_REPEAT);
   
-  return(low_priority_queue.insertPacket(&p);
+  return(low_priority_queue.insertPacket(&p));
 }
 
 bool DCCPacketScheduler::unsetBasicAccessory(unsigned int address, byte function)
@@ -427,39 +427,39 @@ bool DCCPacketScheduler::unsetBasicAccessory(unsigned int address, byte function
   p.addData(function&0x07);  
   p.setRepeat(ACCESSORY_REPEAT);
   
-  return(low_priority_queue.insertPacket(&p);
+  return(low_priority_queue.insertPacket(&p));
 }
 
 bool DCCPacketScheduler::setExtendedAccessory(unsigned int address, byte data)
 {
-  DCCExtededPacket p(address);
+  DCCExtendedAccessoryPacket p(address);
   p.addData(data & 0x1F);
   p.setRepeat(ACCESSORY_REPEAT);
   
-  return(low_priority_queue.insertPacket(&p);
+  return(low_priority_queue.insertPacket(&p));
 }
     
 
 bool DCCPacketScheduler::eStop(void)
 {
-    DCCPacket e_stop_packet();
-    byte data[] = {0x41};
-    //add data, repeat, etc.
-    e_stop_packet.addData(data,1);
-    e_stop_packet.setKind(e_stop_packet_kind);
-    e_stop_packet.setRepeat(ESTOP_REPEAT);
-    return(e_stop_queue.insertPacket(&e_stop_packet));
+  DCCPacket e_stop_packet;
+  byte data[] = {0x41};
+  //add data, repeat, etc.
+  e_stop_packet.addData(data,1);
+  e_stop_packet.setKind(e_stop_packet_kind);
+  e_stop_packet.setRepeat(E_STOP_REPEAT);
+  return(e_stop_queue.insertPacket(&e_stop_packet));
 }
     
 bool DCCPacketScheduler::eStop(unsigned int address)
 {
-    DCCPacket e_stop_packet(address);
-    byte data[] = {0x41};
-    //add data, repeat, etc.
-    e_stop_packet.addData(data,1);
-    e_stop_packet.setKind(e_stop_packet_kind);
-    e_stop_packet.setRepeat(ESTOP_REPEAT);
-    return(e_stop_queue.insertPacket(&e_stop_packet));
+  DCCPacket e_stop_packet(address);
+  byte data[] = {0x41};
+  //add data, repeat, etc.
+  e_stop_packet.addData(data,1);
+  e_stop_packet.setKind(e_stop_packet_kind);
+  e_stop_packet.setRepeat(E_STOP_REPEAT);
+  return(e_stop_queue.insertPacket(&e_stop_packet));
 }
 
 //to be called periodically within loop()

@@ -46,8 +46,9 @@ void DCCPacket::addData(byte new_data[], byte new_size) //insert freeform data.
 
 /////////////////////////////////////
 
-DCCAccessoryPacketDCCAccessoryPacket(unsigned int address) : DCCPacket(address), kind(accessory_packet_kind)
+DCCAccessoryPacket::DCCAccessoryPacket(unsigned int address) : DCCPacket(address)
 {
+  kind = accessory_packet_kind;
 }
 
 byte DCCAccessoryPacket::getBitstream(byte rawbytes[])
@@ -55,7 +56,7 @@ byte DCCAccessoryPacket::getBitstream(byte rawbytes[])
   // Basic Accessory Packet looks like this:
   // {preamble} 0 10AAAAAA 0 1AAACDDD 0 EEEEEEEE 1
 
-  rawbytes [0] = 0x80
+  rawbytes [0] = 0x80;
   rawbytes [1] = 0x80;
 
   //first, whittle address down to 9bits, and split address up among the first two bytes
@@ -66,7 +67,7 @@ byte DCCAccessoryPacket::getBitstream(byte rawbytes[])
   rawbytes[1] |= (data[0] & 0x0F);
   
   byte XOR = 0;
-  for(i = 0; i < 2; ++i)
+  for(byte i = 0; i < 2; ++i)
   {
     XOR ^= rawbytes[i];
   }
@@ -82,8 +83,9 @@ void DCCAccessoryPacket::addData(byte new_data)
 
 /////////////////////////////////
 
-DCCExtendedAccessoryPacket::DCCExtendedAccessoryPacket(unsigned int address) : DCCPacket(address), kind(accessory_packet_kind)
+DCCExtendedAccessoryPacket::DCCExtendedAccessoryPacket(unsigned int address) : DCCPacket(address)
 {
+  kind = accessory_packet_kind;
 }
 
 byte DCCExtendedAccessoryPacket::getBitstream(byte rawbytes[])
@@ -103,7 +105,7 @@ byte DCCExtendedAccessoryPacket::getBitstream(byte rawbytes[])
   rawbytes[2] = data[0] & 0x1F;
   
   byte XOR = 0;
-  for(i = 0; i < 3; ++i)
+  for(byte i = 0; i < 3; ++i)
   {
     XOR ^= rawbytes[i];
   }

@@ -11,7 +11,7 @@
 
 class PacketQueue
 {
-  private: //protected:
+  protected:
     DCCPacket *queue;
     byte read_pos;
     byte write_pos;
