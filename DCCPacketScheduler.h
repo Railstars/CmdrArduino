@@ -50,7 +50,7 @@ class DCCPacketScheduler
     bool setTurnout(unsigned int address);
     bool unsetTurnout(unsigned int address);
     
-    void opsProgramCV(unsigned int address, byte CV, byte data);
+    bool opsProgramCV(unsigned int address, byte CV, byte data);
 
     //more specific functions
     bool eStop(void); //all locos
