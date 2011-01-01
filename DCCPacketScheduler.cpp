@@ -407,7 +407,7 @@ bool DCCPacketScheduler::setFunctions9to12(unsigned int address, byte functions)
 bool DCCPacketScheduler::setBasicAccessory(unsigned int address, byte function)
 {
   DCCAccessoryPacket p(address);
-  p.addData(0x08 | (function&0x07));  
+  p.setData(0x08 | (function&0x07));  
   p.setRepeat(ACCESSORY_REPEAT);
   
   return(low_priority_queue.insertPacket(&p));
@@ -416,7 +416,7 @@ bool DCCPacketScheduler::setBasicAccessory(unsigned int address, byte function)
 bool DCCPacketScheduler::unsetBasicAccessory(unsigned int address, byte function)
 {
   DCCAccessoryPacket p(address);
-  p.addData(function&0x07);  
+  p.setData(function&0x07);  
   p.setRepeat(ACCESSORY_REPEAT);
   
   return(low_priority_queue.insertPacket(&p));
@@ -425,7 +425,7 @@ bool DCCPacketScheduler::unsetBasicAccessory(unsigned int address, byte function
 bool DCCPacketScheduler::setExtendedAccessory(unsigned int address, byte data)
 {
   DCCExtendedAccessoryPacket p(address);
-  p.addData(data & 0x1F);
+  p.setData(data & 0x1F);
   p.setRepeat(ACCESSORY_REPEAT);
   
   return(low_priority_queue.insertPacket(&p));
@@ -444,7 +444,7 @@ bool DCCPacketScheduler::opsProgramBasicAccessoryCV(unsigned int address, byte f
   data[3] = CV_data;
   
   p.addData(data,4);
-  p.setRepeat(OPS_MODE_PROGRAM_REPEAT);
+  p.setRepeat(OPS_MODE_PROGRAMMING_REPEAT);
   
   return(low_priority_queue.insertPacket(&p));
 }
@@ -461,7 +461,7 @@ bool DCCPacketScheduler::opsProgramExtendedAccessoryCV(unsigned int address, uns
   data[2] = CV_data;
   
   p.addData(data,3);
-  p.setRepeat(OPS_MODE_PROGRAM_REPEAT);
+  p.setRepeat(OPS_MODE_PROGRAMMING_REPEAT);
   return(low_priority_queue.insertPacket(&p));
 }
 

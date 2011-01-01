@@ -88,7 +88,7 @@ byte DCCAccessoryPacket::getBitstream(byte rawbytes[])
   return total_size+1;
 }
 
-void DCCAccessoryPacket::addData(byte new_data)
+void DCCAccessoryPacket::setData(byte new_data)
 {
   data[0] = new_data;
   size = 1;
@@ -134,7 +134,7 @@ byte DCCExtendedAccessoryPacket::getBitstream(byte rawbytes[])
   return total_size+1;
 }
 
-void DCCExtendedAccessoryPacket::addData(byte new_data)
+void DCCExtendedAccessoryPacket::setData(byte new_data)
 {
   data[0] = new_data;
   size = 1;

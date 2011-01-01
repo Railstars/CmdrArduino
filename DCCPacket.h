@@ -49,7 +49,7 @@ class DCCAccessoryPacket : public DCCPacket
   public:
     DCCAccessoryPacket(unsigned int address=BASIC_ACCESSORY_BROADCAST);
     byte getBitstream(byte rawbytes[]);
-    void addData(byte new_data);
+    void setData(byte new_data);
 };
 
 class DCCExtendedAccessoryPacket : public DCCPacket
@@ -57,7 +57,7 @@ class DCCExtendedAccessoryPacket : public DCCPacket
   public:
     DCCExtendedAccessoryPacket(unsigned int address=EXTENDED_ACCESSORY_BROADCAST);
     byte getBitstream(byte rawbytes[]);
-    void addData(byte new_data);
+    void setData(byte new_data);
 };
 
 #endif //__DCCPACKET_H__
