@@ -18,28 +18,44 @@ enum packet_kind_t {
 
 class DCCPacket
 {
-  public:
+  private:
    //A DCC packet is at most 6 bytes: 2 of address, three of data, one of XOR
-    unsigned int address;// = 0;
-    byte data[3];// = {0,0,0};
-    byte size;// = 3; //of data only
-//    byte XOR;// = 0;
-    byte repeat;
-    packet_kind_t kind;
+    unsigned int address;
+    byte data[3];
+    byte size; //of data only, not entire packet
+    byte repeat; //number of times to repeat
+    packet_kind_t kind; //kind of packet
     
-//    void computeXOR(void);
   public:
     DCCPacket(unsigned int address=0);
     
-    byte getBitstream(byte rawbytes[]); //returns size of array.
-    byte getSize(void);
+    virtual byte getBitstream(byte rawbytes[]); //returns size of array.
+    inline byte getSize(void) { return size; }
     inline unsigned int getAddress(void) { return address; }
     inline void setAddress(unsigned int new_address) { address = new_address; }
-    byte addData(byte new_data[], byte new_size); //insert freeform data.
+    void addData(byte new_data[], byte new_size); //insert freeform data.
     inline void setKind(packet_kind_t new_kind) { kind = new_kind; }
     inline packet_kind_t getKind(void) { return kind; }
     inline void setRepeat(byte new_repeat) { repeat = new_repeat; }
     inline byte getRepeat(void) { return repeat; }
 };
+
+class DCCAccessoryPacket : public DCCPacket
+{
+  private:
+  public:
+    DCCAccessoryPacket(unsigned int address=0);
+    byte getBitstream(byte rawbytes[]);
+    void addData(byte new_data);
+}
+
+class DCCExtendedAccessoryPacket : public DCCPacket
+{
+  private:
+  public:
+    DCCExtendedAccessoryPacket(unsigned int address=0);
+    byte getBitstream(byte rawbytes[]);
+    void addData(byte new_data);
+}
 
 #endif //__DCCPACKET_H__

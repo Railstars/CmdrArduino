@@ -47,8 +47,9 @@ class DCCPacketScheduler
     bool setFunctions9to12(unsigned int address, byte functions);
     //other cool functions to follow. Just get these working first, I think.
     
-    bool setTurnout(unsigned int address);
-    bool unsetTurnout(unsigned int address);
+    bool setBasicAccessory(unsigned int address, byte function);
+    bool unsetBasicAccessory(unsigned int address, byte function);
+    bool setExtendedAccessory(unsigned int address, byte data);
     
     void opsProgramCV(unsigned int address, byte CV, byte data);
 
@@ -59,9 +60,7 @@ class DCCPacketScheduler
     //to be called periodically within loop()
     void update(void); //checks queues, puts whatever's pending on the rails via global current_packet. easy-peasy
 
-  //private:
-  
-  //  void stashAddress(DCCPacket *p); //remember the address to compare with the next packet
+  private:
     void repeatPacket(DCCPacket *p); //insert into the appropriate repeat queue
     byte default_speed_steps;
     unsigned int last_packet_address;

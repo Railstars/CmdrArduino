@@ -410,29 +410,56 @@ bool DCCPacketScheduler::setFunctions9to12(unsigned int address, byte functions)
 
 
 //other cool functions to follow. Just get these working first, I think.
+//TODO
 
-//bool DCCPacketScheduler::setTurnout(unsigned int address)
-//bool DCCPacketScheduler::unsetTurnout(unsigned int address)
-//void DCCPacketScheduler::programCV(unsigned int address, byte CV, byte data)
+bool DCCPacketScheduler::setBasicAccessory(unsigned int address, byte function)
+{
+  DCCAccessoryPacket p(address);
+  p.addData(0x08 | (function&0x07));  
+  p.setRepeat(ACCESSORY_REPEAT);
+  
+  return(low_priority_queue.insertPacket(&p);
+}
+
+bool DCCPacketScheduler::unsetBasicAccessory(unsigned int address, byte function)
+{
+  DCCAccessoryPacket p(address);
+  p.addData(function&0x07);  
+  p.setRepeat(ACCESSORY_REPEAT);
+  
+  return(low_priority_queue.insertPacket(&p);
+}
+
+bool DCCPacketScheduler::setExtendedAccessory(unsigned int address, byte data)
+{
+  DCCExtededPacket p(address);
+  p.addData(data & 0x1F);
+  p.setRepeat(ACCESSORY_REPEAT);
+  
+  return(low_priority_queue.insertPacket(&p);
+}
     
-//more specific functions
 
 bool DCCPacketScheduler::eStop(void)
 {
-    DCCPacket e_stop_packet = DCCPacket();
+    DCCPacket e_stop_packet();
     byte data[] = {0x41};
     //add data, repeat, etc.
     e_stop_packet.addData(data,1);
     e_stop_packet.setKind(e_stop_packet_kind);
-    //e_stop_queue.insertPacket(&e_stop_packet);
+    e_stop_packet.setRepeat(ESTOP_REPEAT);
+    return(e_stop_queue.insertPacket(&e_stop_packet));
 }
     
 bool DCCPacketScheduler::eStop(unsigned int address)
 {
-    DCCPacket e_stop_packet = DCCPacket(address);
+    DCCPacket e_stop_packet(address);
+    byte data[] = {0x41};
     //add data, repeat, etc.
+    e_stop_packet.addData(data,1);
     e_stop_packet.setKind(e_stop_packet_kind);
-    //e_stop_queue.insertPacket(&e_stop_packet);
+    e_stop_packet.setRepeat(ESTOP_REPEAT);
+    return(e_stop_queue.insertPacket(&e_stop_packet));
 }
 
 //to be called periodically within loop()
