@@ -97,8 +97,8 @@ byte DCCExtendedAccessoryPacket::getBitstream(byte rawbytes[])
   rawbytes [1] = 0x01;
   rawbytes [2] = 0x00;
 
-  //first, whittle address down to 14bits, and split address up among the first two bytes
-  rawbytes[0] |= (address & 0x3FFF) >> 5;
+  //first, whittle address down to 11bits, and split address up among the first two bytes
+  rawbytes[0] |= (address & 0x7FF) >> 5;
   rawbytes[1] |= ( (address & 0x1C) << 2 ) | ( (address & 0x03) << 1 );
 
   //next, construct the function instruction byte. XXXXX = data[0]

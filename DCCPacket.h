@@ -16,6 +16,9 @@ enum packet_kind_t {
   other_packet_kind
 };
 
+#define BASIC_ACCESSORY_BROADCAST 0x1F8
+#define EXTENDED_ACCESSORY_BROADCAST 0x7E3
+
 class DCCPacket
 {
   public: //protected:
@@ -43,7 +46,7 @@ class DCCPacket
 class DCCAccessoryPacket : public DCCPacket
 {
   public:
-    DCCAccessoryPacket(unsigned int address=0);
+    DCCAccessoryPacket(unsigned int address=BASIC_ACCESSORY_BROADCAST);
     byte getBitstream(byte rawbytes[]);
     void addData(byte new_data);
 };
@@ -51,7 +54,7 @@ class DCCAccessoryPacket : public DCCPacket
 class DCCExtendedAccessoryPacket : public DCCPacket
 {
   public:
-    DCCExtendedAccessoryPacket(unsigned int address=0);
+    DCCExtendedAccessoryPacket(unsigned int address=EXTENDED_ACCESSORY_BROADCAST);
     byte getBitstream(byte rawbytes[]);
     void addData(byte new_data);
 };
