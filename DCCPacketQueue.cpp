@@ -1,11 +1,11 @@
-#include "PacketQueue.h"
+#include "DCCPacketQueue.h"
 
-PacketQueue::PacketQueue(void) : read_pos(0), write_pos(0), written(0), size(10)
+DCCPacketQueue::DCCPacketQueue(void) : read_pos(0), write_pos(0), written(0), size(10)
 {
   return;
 }
 
-void PacketQueue::setup(byte length)
+void DCCPacketQueue::setup(byte length)
 {
   size = length;
   queue = (DCCPacket *)malloc(sizeof(DCCPacket) *size);
@@ -15,7 +15,7 @@ void PacketQueue::setup(byte length)
   }
 }
 
-bool PacketQueue::insertPacket(DCCPacket *packet)
+bool DCCPacketQueue::insertPacket(DCCPacket *packet)
 {
    //First: Overwrite any packet with the same address and kind; if no such packet THEN hitup the packet at write_pos
   byte i = read_pos;
@@ -42,7 +42,7 @@ bool PacketQueue::insertPacket(DCCPacket *packet)
   return false;
 }
 
-void PacketQueue::printQueue(void)
+void DCCPacketQueue::printQueue(void)
 {
   byte i, j;
   for(i = 0; i < size; ++i)
@@ -58,7 +58,7 @@ void PacketQueue::printQueue(void)
   }
 }
 
-bool PacketQueue::readPacket(DCCPacket *packet)
+bool DCCPacketQueue::readPacket(DCCPacket *packet)
 {
   if(!isEmpty())
   {
@@ -74,9 +74,9 @@ bool PacketQueue::readPacket(DCCPacket *packet)
 /*****************************/
 
 
-void TemporalQueue::setup(byte length)
+void DCCTemporalQueue::setup(byte length)
 {
-  PacketQueue::setup(length);
+  DCCPacketQueue::setup(length);
 
   age = (byte *)malloc(sizeof(byte)*size);
   for(int i = 0; i<length; ++i)
@@ -85,7 +85,7 @@ void TemporalQueue::setup(byte length)
   }
 }
 
-bool TemporalQueue::insertPacket(DCCPacket *packet)
+bool DCCTemporalQueue::insertPacket(DCCPacket *packet)
 {
   //first, see if there is a packet to overwrite
   //otherwise find the oldest packet, and write over it.
@@ -126,7 +126,7 @@ bool TemporalQueue::insertPacket(DCCPacket *packet)
   return true;
 }
 
-bool TemporalQueue::readPacket(DCCPacket *packet)
+bool DCCTemporalQueue::readPacket(DCCPacket *packet)
 {
   if(!isEmpty()) //prevents the while loop below from running forever.
   {
@@ -138,7 +138,7 @@ bool TemporalQueue::readPacket(DCCPacket *packet)
   return false;
 }
 
-bool TemporalQueue::forget(unsigned int address)
+bool DCCTemporalQueue::forget(unsigned int address)
 {
   bool found = false;
   for(int i = 0; i < size; ++i)
@@ -156,20 +156,20 @@ bool TemporalQueue::forget(unsigned int address)
 
 /*****************************/
 
-RepeatQueue::RepeatQueue(void) : PacketQueue()
+DCCRepeatQueue::DCCRepeatQueue(void) : DCCPacketQueue()
 {
 }
 
-bool RepeatQueue::insertPacket(DCCPacket *packet)
+bool DCCRepeatQueue::insertPacket(DCCPacket *packet)
 {
   if(packet->getRepeat())
   {
-    return(PacketQueue::insertPacket(packet));
+    return(DCCPacketQueue::insertPacket(packet));
   }
   return false;
 }
 
-bool RepeatQueue::readPacket(DCCPacket *packet)
+bool DCCRepeatQueue::readPacket(DCCPacket *packet)
 {
   if(!isEmpty())
   {
@@ -190,11 +190,11 @@ bool RepeatQueue::readPacket(DCCPacket *packet)
 
 /**************/
 
-EmergencyQueue::EmergencyQueue(void) : PacketQueue()
+DCCEmergencyQueue::DCCEmergencyQueue(void) : DCCPacketQueue()
 {
 }
 
-bool EmergencyQueue::readPacket(DCCPacket *packet)
+bool DCCEmergencyQueue::readPacket(DCCPacket *packet)
 {
   if(!isEmpty())
   {
@@ -204,9 +204,9 @@ bool EmergencyQueue::readPacket(DCCPacket *packet)
       memcpy(packet,&queue[read_pos],sizeof(DCCPacket));
       return true;
     }
-    else //the topmost packet is ready to be discarded; use the PacketQueue mechanism
+    else //the topmost packet is ready to be discarded; use the DCCPacketQueue mechanism
     {
-      return(PacketQueue::readPacket(packet));
+      return(DCCPacketQueue::readPacket(packet));
     }
   }
   return false;

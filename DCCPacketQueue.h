@@ -1,5 +1,5 @@
-#ifndef __PACKETQUEUE_H__
-#define __PACKETQUEUE_H__
+#ifndef __DCCPACKETQUEUE_H__
+#define __DCCPACKETQUEUE_H__
 
 /**
  * A FIFO queue for holding DCC packets, implemented as a circular buffer.
@@ -9,7 +9,7 @@
 
 #include "DCCPacket.h"
 
-class PacketQueue
+class DCCPacketQueue
 {
   public: //protected:
     DCCPacket *queue;
@@ -18,11 +18,11 @@ class PacketQueue
     byte size;
     byte written; //how many cells have valid data? used for determining full status.  
   public:
-    PacketQueue(void);
+    DCCPacketQueue(void);
     
     virtual void setup(byte);
     
-    ~PacketQueue(void)
+    ~DCCPacketQueue(void)
     {
       free(queue);
     }
@@ -52,12 +52,12 @@ class PacketQueue
 };
 
 //A queue that, instead of writing new packets to the end of the queue, simply overwrites the oldest packet in the queue
-class TemporalQueue: public PacketQueue
+class DCCTemporalQueue: public DCCPacketQueue
 {
   public: //protected:
     byte *age;
   public:
-    TemporalQueue(void) : PacketQueue() {};
+    DCCTemporalQueue(void) : DCCPacketQueue() {};
     void setup(byte length);
     inline bool isFull(void) { return false; }
     bool insertPacket(DCCPacket *packet);
@@ -66,10 +66,10 @@ class TemporalQueue: public PacketQueue
 };
 
 //A queue that, when a packet is read, puts that packet back in the queue if it requires repeating.
-class RepeatQueue: public PacketQueue
+class DCCRepeatQueue: public DCCPacketQueue
 {
   public:
-    RepeatQueue(void);
+    DCCRepeatQueue(void);
     //void setup(byte length);
     bool insertPacket(DCCPacket *packet);
     bool readPacket(DCCPacket *packet);
@@ -77,11 +77,11 @@ class RepeatQueue: public PacketQueue
 };
 
 //A queue that repeats the topmost packet as many times as is indicated by the packet before moving on
-class EmergencyQueue: public PacketQueue
+class DCCEmergencyQueue: public DCCPacketQueue
 {
   public:
-    EmergencyQueue(void);
+    DCCEmergencyQueue(void);
     bool readPacket(DCCPacket *packet);
 };
 
-#endif //__PACKETQUEUE_H__
+#endif //__DCCPACKETQUEUE_H__

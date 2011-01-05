@@ -1,7 +1,7 @@
 #ifndef __DCCCOMMANDSTATION_H__
 #define __DCCCOMMANDSTATION_H__
 #include "DCCPacket.h"
-#include "PacketQueue.h"
+#include "DCCPacketQueue.h"
 #include "WProgram.h"
 #include <avr/io.h>
 #include <avr/interrupt.h>
@@ -37,8 +37,6 @@ class DCCPacketScheduler
     bool setSpeed14(unsigned int address, char new_speed, bool F0=true); //new_speed: [-13,13], and optionally F0 settings.
     bool setSpeed28(unsigned int address, char new_speed); //new_speed: [-28,28]
     bool setSpeed128(unsigned int address, char new_speed); //new_speed: [-127,127]
-    bool setFunctionG1(unsigned int address, byte functions);
-    bool setFunctionG2(unsigned int address, byte functions);
     
     //the function methods are NOT stateful; you must specify all functions each time you call one
     //keeping track of function state is the responsibility of the calling program.
@@ -69,11 +67,11 @@ class DCCPacketScheduler
   
     byte packet_counter;
     
-    EmergencyQueue e_stop_queue;
-    PacketQueue high_priority_queue;
-    PacketQueue low_priority_queue;
-    RepeatQueue repeat_queue;
-    TemporalQueue periodic_refresh_queue;
+    DCCEmergencyQueue e_stop_queue;
+    DCCPacketQueue high_priority_queue;
+    DCCPacketQueue low_priority_queue;
+    DCCRepeatQueue repeat_queue;
+    DCCTemporalQueue periodic_refresh_queue;
     
     //TODO to be completed later.
     //DCC_Packet ops_programming_queue[10];

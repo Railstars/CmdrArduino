@@ -7,7 +7,7 @@
 ********************/
 
 #include <DCCPacket.h>
-#include <PacketQueue.h>
+#include <DCCPacketQueue.h>
 #include <DCCPacketScheduler.h>
 
 
