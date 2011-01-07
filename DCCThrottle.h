@@ -20,6 +20,9 @@
  *    You should have received a copy of the GNU Lesser General Public License
  *    along with CmdrArduino.  If not, see <http://www.gnu.org/licenses/>.
  */
+ 
+#ifndef __DCCTHROTTLE_H__
+#define __DCCTHROTTLE_H__
 
 #include "DCCPacketScheduler.h"
 
@@ -47,11 +50,14 @@
     unsigned long functions; //bitfield of functions, with F0 at LSB, and F32 at MSB. Is this enough? Too much?
     //DCCThrottle *consist; //the consist this unit is attached to.
     
-    DCCPacketScheduler *packet_scheduler;
-    
+    //a helper function
+    bool functionHelper(byte function_number);
+        
    public:
-    DCCThrottle(DCCPacketScheduler *scheduler, unsigned int address=3);
+    DCCThrottle(unsigned int address=0); //default address is a patently invalid address to indicate invalidity
     ~DCCThrottle();
+    
+    static DCCPacketScheduler *packet_scheduler; //all throttles will share the same packet scheduler
     
     bool setSpeed(int new_speed);
     bool setFunction(byte function_number);
@@ -60,7 +66,10 @@
     bool setAddress(unsigned int new_address);
     bool eStop(void);
     
+    //functions whose implementation may depend on layout feedback devices!
     int getSpeed(void) {return speed;} //in a future version, this function will somehow involve RailCom
     bool isSetFunction(byte function_number) {return functions & ( 1<<function_number );}
     unsigned int getAddress(void) {return DCC_address;}
  };
+ 
+ #endif __DCC_THROTTLE_H__
