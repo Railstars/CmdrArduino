@@ -42,21 +42,21 @@ bool DCCPacketQueue::insertPacket(DCCPacket *packet)
   return false;
 }
 
-void DCCPacketQueue::printQueue(void)
-{
-  byte i, j;
-  for(i = 0; i < size; ++i)
-  {
-    for(j = 0; j < queue[i].size; ++j)
-    {
-      Serial.print(queue[i].data[j],BIN);
-      Serial.print(" ");
-    }
-    if(i == read_pos) Serial.println("   r");
-    else if(i == write_pos) Serial.println("    w");
-    else Serial.println("");
-  }
-}
+// void DCCPacketQueue::printQueue(void)
+// {
+//   byte i, j;
+//   for(i = 0; i < size; ++i)
+//   {
+//     for(j = 0; j < (queue[i].size_repeat>>4); ++j)
+//     {
+//       Serial.print(queue[i].data[j],BIN);
+//       Serial.print(" ");
+//     }
+//     if(i == read_pos) Serial.println("   r");
+//     else if(i == write_pos) Serial.println("    w");
+//     else Serial.println("");
+//   }
+// }
 
 bool DCCPacketQueue::readPacket(DCCPacket *packet)
 {

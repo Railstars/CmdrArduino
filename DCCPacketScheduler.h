@@ -10,7 +10,7 @@
 #define HIGH_PRIORITY_QUEUE_SIZE    10
 #define LOW_PRIORITY_QUEUE_SIZE     10
 #define REPEAT_QUEUE_SIZE           10
-#define PERIODIC_REFRESH_QUEUE_SIZE 10
+//#define PERIODIC_REFRESH_QUEUE_SIZE 10
 
 #define LOW_PRIORITY_INTERVAL     5
 #define REPEAT_INTERVAL           11
@@ -71,13 +71,13 @@ class DCCPacketScheduler
     DCCPacketQueue high_priority_queue;
     DCCPacketQueue low_priority_queue;
     DCCRepeatQueue repeat_queue;
-    DCCTemporalQueue periodic_refresh_queue;
+    //DCCTemporalQueue periodic_refresh_queue;
     
     //TODO to be completed later.
     //DCC_Packet ops_programming_queue[10];
     
     //some handy thingers
-    DCCPacket idle_packet;
+    //DCCPacket idle_packet;
 };
 
 //DCCPacketScheduler packet_scheduler;

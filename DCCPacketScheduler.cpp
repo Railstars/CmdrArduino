@@ -194,7 +194,7 @@ DCCPacketScheduler::DCCPacketScheduler(void) : packet_counter(1), default_speed_
   high_priority_queue.setup(HIGH_PRIORITY_QUEUE_SIZE);
   low_priority_queue.setup(LOW_PRIORITY_QUEUE_SIZE);
   repeat_queue.setup(REPEAT_QUEUE_SIZE);
-  periodic_refresh_queue.setup(PERIODIC_REFRESH_QUEUE_SIZE);
+  //periodic_refresh_queue.setup(PERIODIC_REFRESH_QUEUE_SIZE);
 }
     
 //for configuration
@@ -236,8 +236,8 @@ void DCCPacketScheduler::repeatPacket(DCCPacket *p)
     case e_stop_packet_kind: //e_stop packets automatically repeat without having to be put in a special queue
       break;
     case speed_packet_kind: //speed packets go to the periodic_refresh queue
-      periodic_refresh_queue.insertPacket(p);
-      break;
+    //  periodic_refresh_queue.insertPacket(p);
+    //  break;
     case function_packet_kind: //all other packets go to the repeat_queue
     case accessory_packet_kind:
     case reset_packet_kind:
@@ -474,15 +474,16 @@ void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending o
                   !((packet_counter % LOW_PRIORITY_INTERVAL) && doHigh);
       bool doRepeat = repeat_queue.notEmpty() && repeat_queue.notRepeat(last_packet_address) &&
                   !((packet_counter % REPEAT_INTERVAL) && (doHigh || doLow));
-      bool doRefresh = periodic_refresh_queue.notEmpty() && periodic_refresh_queue.notRepeat(last_packet_address) &&
-                  !((packet_counter % PERIODIC_REFRESH_INTERVAL) && (doHigh || doLow || doRepeat));
+      //bool doRefresh = periodic_refresh_queue.notEmpty() && periodic_refresh_queue.notRepeat(last_packet_address) &&
+      //            !((packet_counter % PERIODIC_REFRESH_INTERVAL) && (doHigh || doLow || doRepeat));
       //examine queues in order from lowest priority to highest.
-      if(doRefresh)
-      {
-        periodic_refresh_queue.readPacket(&p);
-        ++packet_counter;
-      }
-      else if(doRepeat)
+      //if(doRefresh)
+      //{
+      //  periodic_refresh_queue.readPacket(&p);
+      //  ++packet_counter;
+      //}
+      //else if(doRepeat)
+      if(doRepeat)
       {
         repeat_queue.readPacket(&p);
         ++packet_counter;

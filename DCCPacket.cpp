@@ -1,7 +1,7 @@
 #include "DCCPacket.h"
 
 
-DCCPacket::DCCPacket(unsigned int decoder_address) : address(decoder_address), size(1), kind(idle_packet_kind), repeat(0)
+DCCPacket::DCCPacket(unsigned int decoder_address) : address(decoder_address), kind(idle_packet_kind), size_repeat(0x10) //size(1), repeat(0)
 {
   data[0] = 0xFF; //default to idle packet
 }
@@ -21,7 +21,7 @@ byte DCCPacket::getBitstream(byte rawbytes[]) //returns size of array.
   }
   
   byte i;
-  for(i = 0; i < size; ++i,++total_size)
+  for(i = 0; i < (size_repeat>>4); ++i,++total_size)
   {
     rawbytes[total_size] = data[i];
   }
@@ -38,12 +38,12 @@ byte DCCPacket::getBitstream(byte rawbytes[]) //returns size of array.
 
 byte DCCPacket::getSize(void)
 {
-  return size;
+  return (size_repeat>>4);
 }
 
 byte DCCPacket::addData(byte new_data[], byte new_size) //insert freeform data.
 {
   for(int i = 0; i < new_size; ++i)
     data[i] = new_data[i];
-  size = new_size;
+  size_repeat |= new_size<<4;
 }

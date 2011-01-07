@@ -45,7 +45,7 @@ class DCCPacketQueue
       return (address != queue[read_pos].getAddress());
     }
     
-    void printQueue(void);
+    //void printQueue(void);
     
     virtual bool insertPacket(DCCPacket *packet); //makes a local copy, does not take over memory management!
     virtual bool readPacket(DCCPacket *packet); //does not hand off memory management of packet. used immediately.
