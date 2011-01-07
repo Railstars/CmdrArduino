@@ -34,14 +34,14 @@ class OpenLCBThrottleManager
   public:
     OpenLCBThrottleManager(byte size=10)
     {
-      DCCThrottle = (DCCThrottle *)malloc(sizeof(DCCThrottle)*size);
+      throttles = (DCCThrottle *)malloc(sizeof(DCCThrottle)*size);
       //how to ensure the constructors get called? //how to ensure we aren't running out of memory?
       //NIDs = (OlcbNodeID *)malloc(sizeof(OlcbNodeID)*size);
     };
     
     ~OpenLCBThrottleManager()
     {
-      delete DCCThrottle;
+      free(throttles);
       //delete NIDs;
     }
     

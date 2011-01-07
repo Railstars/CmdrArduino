@@ -37,18 +37,18 @@ bool DCCThrottle::setSpeed(int new_speed)
   speed = new_speed;
   //speed is an int; DCCPacketScheduler::setSpeed expects a char. so just slice off the 8 LS bits.
   //it's a hack, but hey, it works, and it's reasonably fast.
-  return(packet_scheduler.setSpeed(address,speed>>8));
+  return(packet_scheduler->setSpeed(DCC_address,speed>>8));
 }
 
 bool DCCThrottle::functionHelper(byte function_number)
 {
   //depending on the value of function_number, there are different methods to call…
   if(function_number <= 5)
-    return(setFunctions0to4(address, functions & 0x1F));
+    return(packet_scheduler->setFunctions0to4(DCC_address, functions & 0x1F));
   else if (function_number <= 8)
-    return(setFunctions5to8(address, (functions >> 5)&0x0F));
+    return(packet_scheduler->setFunctions5to8(DCC_address, (functions >> 5)&0x0F));
   else if(function_number <= 12)
-    return(setFunctions9to12(address, (functions >> 9)&0x0F));
+    return(packet_scheduler->setFunctions9to12(DCC_address, (functions >> 9)&0x0F));
   //TODO more function methods, please!
 }
 
@@ -57,7 +57,7 @@ bool DCCThrottle::setFunction(byte function_number)
   if(function_number <= 32)
   {
     functions |= (1 << function_number);
-    return(functionHelper(function_number);
+    return(functionHelper(function_number));
   }
   return false;
 }
@@ -67,27 +67,27 @@ bool DCCThrottle::unsetFunction(byte function_number)
   if(function_number <= 32)
   {
     functions &= (0 << function_number);
-    return(functionHelper(function_number);
+    return(functionHelper(function_number));
   }
   return false;
 }
 
 bool DCCThrottle::opsModeProgramCV(unsigned int CV, byte CV_data)
 {
-  return(packet_scheduler.opsProgramCV(address, CV, CV_data));
+  return(packet_scheduler->opsProgramCV(DCC_address, CV, CV_data));
   //TODO should update address if address is programmed.
 }
 
 bool DCCThrottle::setAddress(unsigned int new_address)
 {
-  if(new_address == address)
+  if(new_address == DCC_address)
     return true;
     
-  address = new_address;
+  DCC_address = new_address;
   //TODO should call opsModeProgramCV to update address at loco! maybe switching CV29 to reflect 2- or 4-digit addressing
 }
 
 bool DCCThrottle::eStop(void)
 {
-  return(packet_scheduler.eStop(address));
+  return(packet_scheduler->eStop(DCC_address));
 }
