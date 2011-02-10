@@ -90,7 +90,14 @@ unsigned int zero_low_count=199; //100us
 /// Setup phase: configure and enable timer1 CTC interrupt, set OC1A and OC1B to toggle on CTC
 void setup_DCC_waveform_generator() {
   
-  pinMode(9,OUTPUT); // OC1A = Arduino pin 9; defaults to outputting low
+ //Set the OC1A pin (Timer1 output pin A) to output mode
+ //On Arduino UNO, etc, OC1A is digital pin 9, or Port B/Pin 1
+ //On Arduino MEGA, etc, OC1A is digital pin 11, or Port B/Pin 5
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+  DDRB=(1<<DDB5);
+#else
+  DDRB=(1<<DDB1);
+#endif
 
   // Configure timer1 in CTC mode, for waveform generation, set to toggle OC1A, OC1B, at /8 prescalar, interupt at CTC
   TCCR1A = (0<<COM1A1) | (1<<COM1A0) | (0<<COM1B1) | (0<<COM1B0) | (0<<WGM11) | (0<<WGM10);
@@ -113,7 +120,13 @@ ISR(TIMER1_COMPA_vect)
   
   //remember, anything we set for OCR1A takes effect IMMEDIATELY, so we are working within the cycle we are setting.
   //first, check to see if we're in the second half of a byte; only act on the first half of a byte
-  if(!(PINB & (1<<PORTB1))) //if the pin is low, we need to use a different zero counter to enable streched-zero DC operation
+  //On Arduino UNO, etc, OC1A is digital pin 9, or Port B/Pin 1
+  //On Arduino MEGA, etc, OC1A is digital pin 11, or Port B/Pin 5
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__)
+  if(!(PINB & (1<<PINB5))) //if the pin is low, we need to use a different zero counter to enable streched-zero DC operation
+#else
+  if(!(PINB & (1<<PINB1))) //if the pin is low, we need to use a different zero counter to enable streched-zero DC operation
+#endif
   {
     if(OCR1A == zero_high_count) //if the pin is low and outputting a zero, we need to be using zero_low_count
       {
