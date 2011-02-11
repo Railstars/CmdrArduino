@@ -147,6 +147,14 @@ ISR(TIMER1_COMPA_vect)
           OCR1A=one_count; //just send ones if we don't know what else to do. safe bet.
           break;
         }
+        //looks like there's a new packet for us to dump on the wire!
+        //for debugging purposes, let's print it out
+        for(byte j = 0; j < current_packet_size; ++j)
+        {
+          Serial.print(current_packet(j),HEX);
+          Serial.print(" ");
+        }
+        Serial.println("");
         DCC_state = dos_send_preamble; //and fall through to dos_send_preamble
       /// Preamble: In the process of producing 14 '1's, counter by current_bit_counter; when complete, move to dos_send_bstart
       case dos_send_preamble:
