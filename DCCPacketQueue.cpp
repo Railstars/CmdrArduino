@@ -194,11 +194,12 @@ DCCEmergencyQueue::DCCEmergencyQueue(void) : DCCPacketQueue()
 {
 }
 
+/* Goes through each packet in the queue, repeats it getRepeat() times, and discards it */
 bool DCCEmergencyQueue::readPacket(DCCPacket *packet)
 {
-  if(!isEmpty())
+  if(!isEmpty()) //anything in the queue?
   {
-    queue[read_pos].setRepeat(queue[read_pos].getRepeat()-1);
+    queue[read_pos].setRepeat(queue[read_pos].getRepeat()-1); //decrement the current packet's repeat count
     if(queue[read_pos].getRepeat()) //if the topmost packet needs repeating
     {
       memcpy(packet,&queue[read_pos],sizeof(DCCPacket));
