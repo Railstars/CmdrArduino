@@ -458,10 +458,10 @@ bool DCCPacketScheduler::eStop(void)
 {
     // 111111111111 0 00000000 0 01DC0001 0 EEEEEEEE 1
     DCCPacket e_stop_packet = DCCPacket(); //address 0
-    byte data[] = {0x65}; //01110001
+    byte data[] = {0x71}; //01110001
     e_stop_packet.addData(data,1);
     e_stop_packet.setKind(e_stop_packet_kind);
-    e_stop_packet.setReepat(10);
+    e_stop_packet.setRepeat(10);
     e_stop_queue.insertPacket(&e_stop_packet);
 }
     
@@ -471,10 +471,10 @@ bool DCCPacketScheduler::eStop(unsigned int address)
     // or
     // 111111111111 0	0AAAAAAA 0 01000001 0 EEEEEEEE 1
     DCCPacket e_stop_packet = DCCPacket(address);
-    byte data[] = {0x61}; //01000001
+    byte data[] = {0x41}; //01000001
     e_stop_packet.addData(data,1);
     e_stop_packet.setKind(e_stop_packet_kind);
-    e_stop_packet.setReepat(10);
+    e_stop_packet.setRepeat(10);
     e_stop_queue.insertPacket(&e_stop_packet);
 }
 
