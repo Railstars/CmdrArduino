@@ -286,6 +286,13 @@ void DCCPacketScheduler::repeatPacket(DCCPacket *p)
 }
     
 //for enqueueing packets
+
+//setSpeed* functions:
+//new_speed contains the speed and direction.
+// a value of 0 = estop
+// a value of 1/-1 = stop
+// a value >1 (or <-1) means go.
+// valid non-estop speeds are in the range [1,127] / [-127,-1] with 1 = stop
 bool DCCPacketScheduler::setSpeed(unsigned int address,  char new_speed, byte steps)
 {
   byte num_steps = steps;
@@ -316,8 +323,12 @@ bool DCCPacketScheduler::setSpeed14(unsigned int address, char new_speed, bool F
     dir = 0;
     speed = new_speed * -1;
   }
-  if(new_speed) //leave at 0 for stop.
-    speed_data_bytes[0] |= ((13*speed) / 127)+2; //convert from [1-127] to [2-15]
+  if(!new_speed) //estop!
+    speed_data_bytes[0] |= 0x01; //estop
+  else if(new_speed == 1) //regular stop!
+    speed_data_bytes[0] |= 0x00; //stop
+  else //movement
+    speed_data_bytes[0] |= map(speed, 2, 127, 2, 15); //convert from [2-127] to [1-14]
   speed_data_bytes[0] |= (0x20*dir); //flip bit 3 to indicate direction;
   //Serial.println(speed_data_bytes[0],BIN);
   p.addData(speed_data_bytes,1);
@@ -342,9 +353,13 @@ bool DCCPacketScheduler::setSpeed28(unsigned int address, char new_speed)
     dir = 0;
     speed = new_speed * -1;
   }
-  if(new_speed) //leave at 0 for stop.
+  if(!new_speed) //estop!
+    speed_data_bytes[0] |= 0x01; //estop
+  else if(new_speed == 1) //regular stop!
+    speed_data_bytes[0] |= 0x00; //stop
+  else //movement
   {
-    speed_data_bytes[0] |= ((27*speed) / 127)+3; //convert from [1-127] to [3-31]
+    speed_data_bytes[0] |= map(speed, 2, 127, 2, 0X1F); //convert from [2-127] to [2-31]  
     //most least significant bit has to be shufled around
     speed_data_bytes[0] = (speed_data_bytes[0]&0xE0) | ((speed_data_bytes[0]&0x1F) >> 1) | ((speed_data_bytes[0]&0x01) << 4);
   }
@@ -364,22 +379,22 @@ bool DCCPacketScheduler::setSpeed28(unsigned int address, char new_speed)
 
 bool DCCPacketScheduler::setSpeed128(unsigned int address, char new_speed)
 {
-  //TODO notice that the actual max speed is 126!!
-  //TODO notice that a speed of 0 forces direction to forward, which is an error!
-  //note that new_speed = 0 means stop
-  //and new_speed = 1 means e_stop. So we need to change things up a bit.
   DCCPacket p(address);
   byte dir = 1;
+  unsigned int speed = new_speed;
+  byte speed_data_bytes[] = {0x3F,0x00};
   if(new_speed<0)
   {
-    new_speed *= -1;
     dir = 0;
+    speed = new_speed * -1;
   }
-  if(new_speed > 126) new_speed = 126;
-  if(new_speed) //if a positive speed, we need to add one to not do an estop;
-    ++new_speed;
-  byte speed_data_bytes[] = {0x3F,new_speed};
-  
+  if(!new_speed) //estop!
+    speed_data_bytes[1] = 0x01; //estop
+  else if(new_speed == 1) //regular stop!
+    speed_data_bytes[1] = 0x00; //stop
+  else //movement
+    speed_data_bytes[1] = speed; //no conversion necessary.
+
   speed_data_bytes[1] |= (0x80*dir); //flip bit 7 to indicate direction;
   p.addData(speed_data_bytes,2);
   //Serial.print(speed_data_bytes[0],BIN);
@@ -397,6 +412,7 @@ bool DCCPacketScheduler::setSpeed128(unsigned int address, char new_speed)
 
 bool DCCPacketScheduler::setFunctions(unsigned int address, uint16_t functions)
 {
+//  Serial.println(functions,HEX);
   if(setFunctions0to4(address, functions&0x1F))
     if(setFunctions5to8(address, (functions>>5)&0x0F))
       if(setFunctions9to12(address, (functions>>9)&0x0F))
@@ -415,6 +431,8 @@ bool DCCPacketScheduler::setFunctions(unsigned int address, byte F0to4, byte F5t
 
 bool DCCPacketScheduler::setFunctions0to4(unsigned int address, byte functions)
 {
+//  Serial.println("setFunctions0to4");
+//  Serial.println(functions,HEX);
   DCCPacket p(address);
   byte data[] = {0x80};
   
@@ -435,6 +453,8 @@ bool DCCPacketScheduler::setFunctions0to4(unsigned int address, byte functions)
 
 bool DCCPacketScheduler::setFunctions5to8(unsigned int address, byte functions)
 {
+//  Serial.println("setFunctions5to8");
+//  Serial.println(functions,HEX);
   DCCPacket p(address);
   byte data[] = {0xB0};
   
@@ -448,6 +468,8 @@ bool DCCPacketScheduler::setFunctions5to8(unsigned int address, byte functions)
 
 bool DCCPacketScheduler::setFunctions9to12(unsigned int address, byte functions)
 {
+//  Serial.println("setFunctions9to12");
+//  Serial.println(functions,HEX);
   DCCPacket p(address);
   byte data[] = {0xA0};
   
