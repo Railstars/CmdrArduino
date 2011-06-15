@@ -20,11 +20,13 @@ typedef unsigned char byte;
 #define idle_packet_kind            0
 #define e_stop_packet_kind          1
 #define speed_packet_kind           2
-#define function_packet_kind        3
-#define accessory_packet_kind       4
-#define reset_packet_kind           5
-#define ops_mode_programming_kind   6
-#define other_packet_kind           7
+#define function_packet_1_kind        3
+#define function_packet_2_kind        4
+#define function_packet_3_kind        5
+#define accessory_packet_kind       6
+#define reset_packet_kind           7
+#define ops_mode_programming_kind   8
+#define other_packet_kind           9
 
 class DCCPacket
 {

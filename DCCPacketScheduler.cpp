@@ -142,7 +142,6 @@ ISR(TIMER1_COMPA_vect)
     if(OCR1A == zero_high_count) //if the pin is low and outputting a zero, we need to be using zero_low_count
       {
         OCR1A = OCR1B = zero_low_count;
-        Serial.print(';');
       }
   }
   else //the pin is high. New cycle is begining. Here's where the real work goes.
@@ -161,12 +160,15 @@ ISR(TIMER1_COMPA_vect)
         }
         //looks like there's a new packet for us to dump on the wire!
         //for debugging purposes, let's print it out
-        for(byte j = 0; j < current_packet_size; ++j)
-        {
-//          Serial.print(current_packet[j],HEX);
-//          Serial.print(" ");
-        }
-//        Serial.println("");
+//        if(current_packet[1] != 0xFF)
+//        {
+//          for(byte j = 0; j < current_packet_size; ++j)
+//          {
+//            Serial.print(current_packet[j],HEX);
+//            Serial.print(" ");
+//          }
+//          Serial.println("");
+//        }
         DCC_state = dos_send_preamble; //and fall through to dos_send_preamble
       /// Preamble: In the process of producing 14 '1's, counter by current_bit_counter; when complete, move to dos_send_bstart
       case dos_send_preamble:
@@ -271,7 +273,9 @@ void DCCPacketScheduler::repeatPacket(DCCPacket *p)
     case speed_packet_kind: //speed packets go to the periodic_refresh queue
     //  periodic_refresh_queue.insertPacket(p);
     //  break;
-    case function_packet_kind: //all other packets go to the repeat_queue
+    case function_packet_1_kind: //all other packets go to the repeat_queue
+    case function_packet_2_kind: //all other packets go to the repeat_queue
+    case function_packet_3_kind: //all other packets go to the repeat_queue
     case accessory_packet_kind:
     case reset_packet_kind:
     case ops_mode_programming_kind:
@@ -360,16 +364,23 @@ bool DCCPacketScheduler::setSpeed28(unsigned int address, char new_speed)
 
 bool DCCPacketScheduler::setSpeed128(unsigned int address, char new_speed)
 {
+  //TODO notice that the actual max speed is 126!!
+  //TODO notice that a speed of 0 forces direction to forward, which is an error!
+  //note that new_speed = 0 means stop
+  //and new_speed = 1 means e_stop. So we need to change things up a bit.
   DCCPacket p(address);
   byte dir = 1;
-  byte speed_data_bytes[] = {0x3F,new_speed};
   if(new_speed<0)
   {
+    new_speed *= -1;
     dir = 0;
-    speed_data_bytes[1] = new_speed * -1;
   }
+  if(new_speed > 126) new_speed = 126;
+  if(new_speed) //if a positive speed, we need to add one to not do an estop;
+    ++new_speed;
+  byte speed_data_bytes[] = {0x3F,new_speed};
   
-  speed_data_bytes[1] |= (0x80*dir); //flip bit 0 to indicate direction;
+  speed_data_bytes[1] |= (0x80*dir); //flip bit 7 to indicate direction;
   p.addData(speed_data_bytes,2);
   //Serial.print(speed_data_bytes[0],BIN);
   //Serial.print(" ");
@@ -382,6 +393,15 @@ bool DCCPacketScheduler::setSpeed128(unsigned int address, char new_speed)
   //speed packets get refreshed indefinitely, and so the repeat doesn't need to be set.
   //speed packets go to the high proirity queue
   return(high_priority_queue.insertPacket(&p));
+}
+
+bool DCCPacketScheduler::setFunctions(unsigned int address, uint16_t functions)
+{
+  if(setFunctions0to4(address, functions&0x1F))
+    if(setFunctions5to8(address, (functions>>5)&0x0F))
+      if(setFunctions9to12(address, (functions>>9)&0x0F))
+        return true;
+  return false;
 }
 
 bool DCCPacketScheduler::setFunctions(unsigned int address, byte F0to4, byte F5to8, byte F9to12)
@@ -398,10 +418,16 @@ bool DCCPacketScheduler::setFunctions0to4(unsigned int address, byte functions)
   DCCPacket p(address);
   byte data[] = {0x80};
   
-  data[0] |= functions & 0x1F;
+  //Obnoxiously, the headlights (F0, AKA FL) are not controlled
+  //by bit 0, but by bit 4. Really?
   
+  //get functions 1,2,3,4
+  data[0] |= (functions>>1) & 0x0F;
+  //get functions 0
+  data[0] |= (functions&0x01) << 4;
+
   p.addData(data,1);
-  p.setKind(function_packet_kind);
+  p.setKind(function_packet_1_kind);
   p.setRepeat(FUNCTION_REPEAT);
   return(low_priority_queue.insertPacket(&p));
 }
@@ -410,12 +436,12 @@ bool DCCPacketScheduler::setFunctions0to4(unsigned int address, byte functions)
 bool DCCPacketScheduler::setFunctions5to8(unsigned int address, byte functions)
 {
   DCCPacket p(address);
-  byte data[] = {0xA0};
+  byte data[] = {0xB0};
   
   data[0] |= functions & 0x0F;
   
   p.addData(data,1);
-  p.setKind(function_packet_kind);
+  p.setKind(function_packet_2_kind);
   p.setRepeat(FUNCTION_REPEAT);
   return(low_priority_queue.insertPacket(&p));
 }
@@ -423,13 +449,13 @@ bool DCCPacketScheduler::setFunctions5to8(unsigned int address, byte functions)
 bool DCCPacketScheduler::setFunctions9to12(unsigned int address, byte functions)
 {
   DCCPacket p(address);
-  byte data[] = {0xB0};
+  byte data[] = {0xA0};
   
   //least significant four functions (F5--F8)
-  data[0] |= functions & 0xF0;
+  data[0] |= functions & 0x0F;
   
   p.addData(data,1);
-  p.setKind(function_packet_kind);
+  p.setKind(function_packet_3_kind);
   p.setRepeat(FUNCTION_REPEAT);
   return(low_priority_queue.insertPacket(&p));
 }
