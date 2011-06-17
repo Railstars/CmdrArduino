@@ -17,8 +17,8 @@ void DCCPacketQueue::setup(byte length)
 
 bool DCCPacketQueue::insertPacket(DCCPacket *packet)
 {
-  Serial.print("Enqueueing a packet of kind: ");
-  Serial.println(packet->getKind(), DEC);
+//  Serial.print("Enqueueing a packet of kind: ");
+//  Serial.println(packet->getKind(), DEC);
    //First: Overwrite any packet with the same address and kind; if no such packet THEN hitup the packet at write_pos
   byte i = read_pos;
   while(i != (read_pos+written)%(size) )//(size+1) ) //size+1 so we can check the last slot, too…
