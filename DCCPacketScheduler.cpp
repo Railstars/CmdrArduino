@@ -242,8 +242,11 @@ void DCCPacketScheduler::setup(void) //for any post-constructor initialization
 {
   setup_DCC_waveform_generator();
   
+  //TODO ELIMINATE THE JERKY START! WHAT'S GOING ON!?
+
   //Following RP 9.2.4, begin by putting 20 reset packets and 10 idle packets on the rails.
   //use the e_stop_queue to do this, to ensure these packets go out first!
+
   
   DCCPacket p;
   byte data[] = {0x00};
