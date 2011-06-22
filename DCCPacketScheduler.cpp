@@ -112,13 +112,16 @@ void setup_DCC_waveform_generator() {
   // start by outputting a '1'
   OCR1A = OCR1B = one_count; //Whenever we set OCR1A, we must also set OCR1B, or else pin OC1B will get out of sync with OC1A!
   TCNT1 = 0; //get the timer rolling (not really necessary? defaults to 0. Just in case.)
-  
-  //enable the compare match interrupt
-  TIMSK1 |= (1<<OCIE1A);
-  
+    
   //finally, force a toggle on OC1B so that pin OC1B will always complement pin OC1A
   TCCR1C |= (1<<FOC1B);
 
+}
+
+void DCC_waveform_generation_hasshin()
+{
+  //enable the compare match interrupt
+  TIMSK1 |= (1<<OCIE1A);
 }
 
 /// This is the Interrupt Service Routine (ISR) for Timer1 compare match.
@@ -154,7 +157,7 @@ ISR(TIMER1_COMPA_vect)
       case dos_idle:
         if(!current_byte_counter) //if no new packet
         {
-          //Serial.println("X");
+//          Serial.println("X");
           OCR1A = OCR1B = one_count; //just send ones if we don't know what else to do. safe bet.
           break;
         }
@@ -162,6 +165,7 @@ ISR(TIMER1_COMPA_vect)
         //for debugging purposes, let's print it out
 //        if(current_packet[1] != 0xFF)
 //        {
+//          Serial.print("Packet: ");
 //          for(byte j = 0; j < current_packet_size; ++j)
 //          {
 //            Serial.print(current_packet[j],HEX);
@@ -173,7 +177,7 @@ ISR(TIMER1_COMPA_vect)
       /// Preamble: In the process of producing 14 '1's, counter by current_bit_counter; when complete, move to dos_send_bstart
       case dos_send_preamble:
         OCR1A = OCR1B = one_count;
-        //Serial.print("1");
+//        Serial.print("P");
         if(!--current_bit_counter)
           DCC_state = dos_send_bstart;
         break;
@@ -182,19 +186,19 @@ ISR(TIMER1_COMPA_vect)
         OCR1A = OCR1B = zero_high_count;
         DCC_state = dos_send_byte;
         current_bit_counter = 8;
-        //Serial.print(" 0 ");
+//        Serial.print(" 0 ");
         break;
       /// Sending a data byte; current bit is tracked with current_bit_counter, and current byte with current_byte_counter
       case dos_send_byte:
         if(((current_packet[current_packet_size-current_byte_counter])>>(current_bit_counter-1)) & 1) //is current bit a '1'?
         {
           OCR1A = OCR1B = one_count;
-          //Serial.print("1");
+//          Serial.print("1");
         }
         else //or is it a '0'
         {
           OCR1A = OCR1B = zero_high_count;
-          //Serial.print("0");
+//          Serial.print("0");
         }
         if(!--current_bit_counter) //out of bits! time to either send a new byte, or end the packet
         {
@@ -213,7 +217,7 @@ ISR(TIMER1_COMPA_vect)
         OCR1A = OCR1B = one_count;
         DCC_state = dos_idle;
         current_bit_counter = 14; //in preparation for a premable...
-        //Serial.println(" 1");
+//        Serial.println(" 1");
         break;
     }
   }
@@ -258,11 +262,17 @@ void DCCPacketScheduler::setup(void) //for any post-constructor initialization
   p.setKind(reset_packet_kind);
   e_stop_queue.insertPacket(&p);
   
+  //WHy in the world is it that what gets put on the rails is 4 reset packets, followed by
+  //10 god know's what, followed by something else?
+  // C0 FF 00 FF
+  // 00 FF FF   what are these?
+  
   //idle packet: address 0xFF, data 0x00, XOR 0xFF; S 9.2 line 90
   p.setAddress(0xFF);
   p.setRepeat(10);
   p.setKind(idle_packet_kind);
   e_stop_queue.insertPacket(&p); //e_stop_queue will be empty, so no need to check if insertion was OK.
+  
 }
 
 //helper functions
@@ -382,6 +392,9 @@ bool DCCPacketScheduler::setSpeed28(unsigned int address, char new_speed)
 
 bool DCCPacketScheduler::setSpeed128(unsigned int address, char new_speed)
 {
+  //why do we get things like this?
+  // 03 3F 16 15 3F (speed packet addressed to loco 03)
+  // 03 3F 11 82 AF  (speed packet addressed to loco 03, speed hex 0x11);
   DCCPacket p(address);
   byte dir = 1;
   unsigned int speed = new_speed;
@@ -544,6 +557,8 @@ bool DCCPacketScheduler::eStop(unsigned int address)
 //to be called periodically within loop()
 void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending on the rails via global current_packet. easy-peasy
 {
+  DCC_waveform_generation_hasshin();
+
   //TODO ADD POM QUEUE?
   if(!current_byte_counter) //if the ISR needs a packet:
   {

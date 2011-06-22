@@ -34,11 +34,11 @@ class DCCPacket
    //A DCC packet is at most 6 bytes: 2 of address, three of data, one of XOR
     unsigned int address;
     byte data[3];
-    byte size_repeat;  //a bit field! 0xF0 = size; 0x0F = repeat
+    byte size_repeat;  //a bit field! 0b11000000 = 0xC0 = size; 0x00111111 = 0x3F = repeat
     byte kind;
     
   public:
-    DCCPacket(unsigned int address=0);
+    DCCPacket(unsigned int decoder_address=0xFF);
     
     byte getBitstream(byte rawbytes[]); //returns size of array.
     byte getSize(void);
@@ -47,8 +47,8 @@ class DCCPacket
     byte addData(byte new_data[], byte new_size); //insert freeform data.
     inline void setKind(byte new_kind) { kind = new_kind; }
     inline byte getKind(void) { return kind; }
-    inline void setRepeat(byte new_repeat) { size_repeat = (size_repeat&0xF0 | new_repeat&0x0F) ;}
-    inline byte getRepeat(void) { return size_repeat & 0x0F; }//return repeat; }
+    inline void setRepeat(byte new_repeat) { size_repeat = (size_repeat&0xC0 | new_repeat&0x3F) ;}
+    inline byte getRepeat(void) { return size_repeat & 0x3F; }//return repeat; }
 };
 
 #endif //__DCCPACKET_H__

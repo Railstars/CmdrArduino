@@ -19,6 +19,7 @@ byte prev_state = 1;
 byte F0 = 0;
 
 void setup() {
+  Serial.begin(115200);
   dps.setup();
 
   //set up button on pin 4
