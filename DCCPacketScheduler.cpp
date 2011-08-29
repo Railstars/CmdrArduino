@@ -299,6 +299,8 @@ extern "C" void MCPWM_IRQHandler(void)
 {
     if(MCPWM_GetIntStatus(LPC_MCPWM, MCPWM_INTFLAG_MAT0))
     {
+        //first clear the interrupt flag, in case this handler gets called a second time for another interrupt source while we are processing this request.
+        MCPWM_IntClear(LPC_MCPWM, MCPWM_INTFLAG_MAT0);
         //This interrupt is called every time that COUNTER = MATCH
         //update the LIMIT and MATCH values
         //void MCPWM_WriteToShadow(LPC_MCPWM_TypeDef *MCPWMx, uint32_t channelNum,
@@ -393,8 +395,6 @@ extern "C" void MCPWM_IRQHandler(void)
         }
         //now, update the registers
         MCPWM_WriteToShadow(LPC_MCPWM, 0, &MCPWM_config);
-        //and clear the interrupt flag
-        MCPWM_IntClear(LPC_MCPWM, MCPWM_INTFLAG_MAT0);
     }
     //TODO As it happens, there is only one MCPWM interrupt, which must handle all three channels!
     //We will handle this with a conditional statement...
