@@ -240,6 +240,19 @@ LPC17xx motor-control PWM peripheral to do the heavy lifting for us. Very handy,
 
 **/
 
+//The LIMIT value is calculated as such
+//As default, peripheral clock for MCPWM module is set to CPU clock / 4.
+//A DCC '1' has freq = 1 / (58us*2) = 8.62068966 KHz
+//Thus, for example, when the peripheral clock is 25MHz, then we should set LIMIT to:
+// LIMIT = 25MHz/8.62068966KHz = 2900
+// Thus, in general, LIMIT = PCLK * ON_TIME * 2
+// where ON_TIME = the amount of time one of the outputs should be set high to indicate a 1 (58us) or 0 (100us or more)
+//MATCH is simply half of LIMIT, for our purposes.
+
+
+uint32_t one_count_half, one_count; //58us
+uint32_t zero_count_half, zero_high_count, zero_low_count; //100us
+
 void setup_DCC_waveform_generator()
 {
     MCPWM_Init(LPC_MCPWM);
@@ -250,9 +263,18 @@ void setup_DCC_waveform_generator()
     config.channelPolarity = MCPWM_CHANNEL_PASSIVE_LO; //TODO REALLY!?
     config.channelDeadtimeEnable = DISABLE;
     config.channelUpdateEnable = ENABLE; //TODO REALLY!?
-    config.channelTimercounterValue = 0; //TIMER value.
-    config.channelPeriodValue = 0; //LIMIT value TODO how to calculate?
-    config.channelPulsewidthValue = 0; //MATCH value TODO how to calculate?
+    config.channelTimercounterValue = 0; //TIMER value. Initialize to 0; will count up from here.
+
+    //determine the value of the peripheral clock for the MCPWM peripheral. Not so straightfoward.
+    uint32_t PCLK_MCPWM = CLKPWR_GetPCLK(CLKPWR_PCLKSEL_MC);
+    one_count_half = PCLK_MCPWM * .000058;
+    one_count = one_count_half * 2;
+    zero_count_half = PCLK_MCPWM * .000100;
+    zero_hight_count = zero_count_half * 2;
+    zero_low_count = zero_high_count;
+    //We start with a '1' because that is a safe value.
+    config.channelPeriodValue = one_count; //LIMIT value
+    config.channelPulsewidthValue = one_count_half; //MATCH value
     MCPWM_ConfigChannel(LPC_MCPWM, 0, &config);
 }
 

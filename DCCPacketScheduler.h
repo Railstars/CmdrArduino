@@ -29,6 +29,7 @@
 //The LPC17xx-specific motor controll interrupt
 #include "LPC17xx.h"
 #include "lpc17xx_mcpwm.h"
+#include "lpc17xx_clkpwr.h"
 #endif //__arm__
 
 class DCCPacketScheduler
