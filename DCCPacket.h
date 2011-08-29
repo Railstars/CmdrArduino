@@ -47,7 +47,7 @@ class DCCPacket
     byte addData(byte new_data[], byte new_size); //insert freeform data.
     inline void setKind(byte new_kind) { kind = new_kind; }
     inline byte getKind(void) { return kind; }
-    inline void setRepeat(byte new_repeat) { size_repeat = (size_repeat&0xC0 | new_repeat&0x3F) ;}
+    inline void setRepeat(byte new_repeat) { size_repeat = ( (size_repeat&0xC0) | (new_repeat&0x3F) ) ;}
     inline byte getRepeat(void) { return size_repeat & 0x3F; }//return repeat; }
 };
 

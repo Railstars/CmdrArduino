@@ -43,10 +43,10 @@ class DCCPacketScheduler
     void setup(void); //for any post-constructor initialization
     
     //for enqueueing packets
-    bool setSpeed(unsigned int address,  char new_speed, byte steps = 0); //new_speed: [-127,127]
-    bool setSpeed14(unsigned int address, char new_speed, bool F0=true); //new_speed: [-13,13], and optionally F0 settings.
-    bool setSpeed28(unsigned int address, char new_speed); //new_speed: [-28,28]
-    bool setSpeed128(unsigned int address, char new_speed); //new_speed: [-127,127]
+    bool setSpeed(unsigned int address,  int8_t new_speed, byte steps = 0); //new_speed: [-127,127]
+    bool setSpeed14(unsigned int address, int8_t new_speed, bool F0=true); //new_speed: [-13,13], and optionally F0 settings.
+    bool setSpeed28(unsigned int address, int8_t new_speed); //new_speed: [-28,28]
+    bool setSpeed128(unsigned int address, int8_t new_speed); //new_speed: [-127,127]
     
     //the function methods are NOT stateful; you must specify all functions each time you call one
     //keeping track of function state is the responsibility of the calling program.

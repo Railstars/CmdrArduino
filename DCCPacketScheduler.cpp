@@ -252,39 +252,159 @@ LPC17xx motor-control PWM peripheral to do the heavy lifting for us. Very handy,
 
 uint32_t one_count_half, one_count; //58us
 uint32_t zero_count_half, zero_high_count, zero_low_count; //100us
+MCPWM_CHANNEL_CFG_Type MCPWM_config;
 
 void setup_DCC_waveform_generator()
 {
     MCPWM_Init(LPC_MCPWM);
 //    MCPWM_ConfigChannel(LPC_MCPWM_TypeDef *MCPWMx, uint32_t channelNum,
 //            MCPWM_CHANNEL_CFG_Type * channelSetup)
-    MCPWM_CHANNEL_CFG_Type config;
-    config.channelType = MCPWM_CHANNEL_EDGE_MODE;
-    config.channelPolarity = MCPWM_CHANNEL_PASSIVE_LO; //TODO REALLY!?
-    config.channelDeadtimeEnable = DISABLE;
-    config.channelUpdateEnable = ENABLE; //TODO REALLY!?
-    config.channelTimercounterValue = 0; //TIMER value. Initialize to 0; will count up from here.
+    MCPWM_config.channelType = MCPWM_CHANNEL_EDGE_MODE;
+    MCPWM_config.channelPolarity = MCPWM_CHANNEL_PASSIVE_LO; //TODO REALLY!?
+    MCPWM_config.channelDeadtimeEnable = DISABLE;
+    MCPWM_config.channelUpdateEnable = ENABLE; //Permit updating of MATCH and LIMIT dynamically.
+    MCPWM_config.channelTimercounterValue = 0; //TIMER value. Initialize to 0; will count up from here.
 
     //determine the value of the peripheral clock for the MCPWM peripheral. Not so straightfoward.
     uint32_t PCLK_MCPWM = CLKPWR_GetPCLK(CLKPWR_PCLKSEL_MC);
     one_count_half = PCLK_MCPWM * .000058;
     one_count = one_count_half * 2;
     zero_count_half = PCLK_MCPWM * .000100;
-    zero_high_count = zero_count_half * 2;
+    zero_high_count = zero_count_half;
     zero_low_count = zero_high_count;
     //We start with a '1' because that is a safe value.
-    config.channelPeriodValue = one_count; //LIMIT value
-    config.channelPulsewidthValue = one_count_half; //MATCH value
-    MCPWM_ConfigChannel(LPC_MCPWM, 0, &config);
+    MCPWM_config.channelPeriodValue = one_count; //LIMIT value
+    MCPWM_config.channelPulsewidthValue = one_count_half; //MATCH value
+    MCPWM_ConfigChannel(LPC_MCPWM, 0, &MCPWM_config);
+}
+
+void MCPWM_Start_Channel0(LPC_MCPWM_TypeDef *MCPWMx, uint32_t channel0)
+{
+    if(channel0)
+        MCPWMx->MCCON_SET |= (MCPWM_CON_RUN(0));
+    else
+        MCPWMx->MCCON_SET &= ~(MCPWM_CON_RUN(0));
 }
 
 void DCC_waveform_generation_hasshin()
 {
+  //start the MCPWM peripheral
+  MCPWM_Start_Channel0(LPC_MCPWM, 1);
+
   //enable the compare match interrupt
+  MCPWM_IntConfig(LPC_MCPWM, MCPWM_INTFLAG_MAT0, ENABLE); //interrupt at MATCH (halfway point), very convenient for updating the MATCH and LIMIT for the next period.
 }
+
 extern "C" void MCPWM_IRQHandler(void)
 {
-    //This interrupt is called every time that TODO
+    if(MCPWM_GetIntStatus(LPC_MCPWM, MCPWM_INTFLAG_MAT0))
+    {
+        //This interrupt is called every time that COUNTER = MATCH
+        //update the LIMIT and MATCH values
+        //void MCPWM_WriteToShadow(LPC_MCPWM_TypeDef *MCPWMx, uint32_t channelNum,
+        //                                MCPWM_CHANNEL_CFG_Type *channelSetup)
+
+        //in edge-aligned mode, TIMER automatically resets to 0 when it matches LIMIT. However, this
+        //IRQHandler is called well in advance of this point, when TIMER == MATCH, the halfway point to LIMIT.
+        //Depending on the next bit to output, we may have to alter the values in MATCH and LIMIT, maybe.
+        //to switch between "one" waveform and "zero" waveform. These values will not actually be updated
+        //until the TIMER reaches LIMIT and is reset.
+
+
+        //Thus, anything we set for LIMIT and MATCH doesn't take effect for a few dozen microseconds,
+        //so we are setting up the next cycle.
+
+        //time to switch things up, maybe. send the current bit in the current packet.
+        //if this is the last bit to send, queue up another packet (might be the idle packet).
+        switch(DCC_state)
+        {
+            /// Idle: Check if a new packet is ready. If it is, fall through to dos_send_premable. Otherwise just stick a '1' out there.
+            case dos_idle:
+                if(!current_byte_counter) //if no new packet
+                {
+                    //          Serial.println("X");
+                    MCPWM_config.channelPeriodValue = one_count;
+                    MCPWM_config.channelPulsewidthValue = one_count_half; //just send ones if we don't know what else to do. safe bet.
+                    break;
+                }
+                //looks like there's a new packet for us to dump on the wire!
+                //for debugging purposes, let's print it out
+                //        if(current_packet[1] != 0xFF)
+                //        {
+                //          Serial.print("Packet: ");
+                //          for(byte j = 0; j < current_packet_size; ++j)
+                //          {
+                //            Serial.print(current_packet[j],HEX);
+                //            Serial.print(" ");
+                //          }
+                //          Serial.println("");
+                //        }
+                DCC_state = dos_send_preamble; //and fall through to dos_send_preamble
+                /// Preamble: In the process of producing 14 '1's, counter by current_bit_counter; when complete, move to dos_send_bstart
+            case dos_send_preamble:
+                MCPWM_config.channelPeriodValue = one_count;
+                MCPWM_config.channelPulsewidthValue = one_count_half;
+                //        Serial.print("P");
+                if(!--current_bit_counter)
+                    DCC_state = dos_send_bstart;
+                break;
+                /// About to send a data byte, but have to peceed the data with a '0'. Send that '0', then move to dos_send_byte
+            case dos_send_bstart:
+                MCPWM_config.channelPeriodValue = zero_high_count+zero_low_count;
+                MCPWM_config.channelPulsewidthValue = zero_high_count;
+                DCC_state = dos_send_byte;
+                current_bit_counter = 8;
+                //        Serial.print(" 0 ");
+                break;
+                /// Sending a data byte; current bit is tracked with current_bit_counter, and current byte with current_byte_counter
+            case dos_send_byte:
+                if(((current_packet[current_packet_size-current_byte_counter])>>(current_bit_counter-1)) & 1) //is current bit a '1'?
+                {
+                    MCPWM_config.channelPeriodValue = one_count;
+                    MCPWM_config.channelPulsewidthValue = one_count_half;
+                    //          Serial.print("1");
+                }
+                else //or is it a '0'
+                {
+                    MCPWM_config.channelPeriodValue = zero_high_count+zero_low_count;
+                    MCPWM_config.channelPulsewidthValue = zero_high_count;
+                    //          Serial.print("0");
+                }
+                if(!--current_bit_counter) //out of bits! time to either send a new byte, or end the packet
+                {
+                    if(!--current_byte_counter) //if not more bytes, move to dos_end_bit
+                    {
+                        DCC_state = dos_end_bit;
+                    }
+                    else //there are more bytes…so, go back to dos_send_bstart
+                    {
+                        DCC_state = dos_send_bstart;
+                    }
+                }
+                break;
+                /// Done with the packet. Send out a final '1', then head back to dos_idle to check for a new packet.
+            case dos_end_bit:
+                MCPWM_config.channelPeriodValue = one_count;
+                MCPWM_config.channelPulsewidthValue = one_count_half;
+                DCC_state = dos_idle;
+                current_bit_counter = 14; //in preparation for a premable...
+                //        Serial.println(" 1");
+                break;
+        }
+        //now, update the registers
+        MCPWM_WriteToShadow(LPC_MCPWM, 0, &MCPWM_config);
+        //and clear the interrupt flag
+        MCPWM_IntClear(LPC_MCPWM, MCPWM_INTFLAG_MAT0);
+    }
+    //TODO As it happens, there is only one MCPWM interrupt, which must handle all three channels!
+    //We will handle this with a conditional statement...
+#if defined(PRGMRARDUINO)
+    //handle programmer output interrupt
+    //TODO
+    //if(MCPWM_GetIntStatus(LPC_MCPWM, MCPWM_INTFLAG_MAT1))
+    //{
+    //}
+#endif
 }
 
 #endif
@@ -372,7 +492,7 @@ void DCCPacketScheduler::repeatPacket(DCCPacket *p)
 // a value of 1/-1 = stop
 // a value >1 (or <-1) means go.
 // valid non-estop speeds are in the range [1,127] / [-127,-1] with 1 = stop
-bool DCCPacketScheduler::setSpeed(unsigned int address,  char new_speed, byte steps)
+bool DCCPacketScheduler::setSpeed(unsigned int address,  int8_t new_speed, byte steps)
 {
   byte num_steps = steps;
   //steps = 0 means use the default; otherwise use the number of steps specified
@@ -391,7 +511,7 @@ bool DCCPacketScheduler::setSpeed(unsigned int address,  char new_speed, byte st
   return false; //invalid number of steps specified.
 }
 
-bool DCCPacketScheduler::setSpeed14(unsigned int address, char new_speed, bool F0)
+bool DCCPacketScheduler::setSpeed14(unsigned int address, int8_t new_speed, bool F0)
 {
   DCCPacket p(address);
   byte dir = 1;
@@ -421,7 +541,7 @@ bool DCCPacketScheduler::setSpeed14(unsigned int address, char new_speed, bool F
   return(high_priority_queue.insertPacket(&p));
 }
 
-bool DCCPacketScheduler::setSpeed28(unsigned int address, char new_speed)
+bool DCCPacketScheduler::setSpeed28(unsigned int address, int8_t new_speed)
 {
   DCCPacket p(address);
   byte dir = 1;
@@ -456,7 +576,7 @@ bool DCCPacketScheduler::setSpeed28(unsigned int address, char new_speed)
   return(high_priority_queue.insertPacket(&p));
 }
 
-bool DCCPacketScheduler::setSpeed128(unsigned int address, char new_speed)
+bool DCCPacketScheduler::setSpeed128(unsigned int address, int8_t new_speed)
 {
   //why do we get things like this?
   // 03 3F 16 15 3F (speed packet addressed to loco 03)
