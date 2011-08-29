@@ -228,7 +228,7 @@ ISR(TIMER1_COMPA_vect)
 #endif /***AVR CODE***/
 
 /************ARM CODE*************/
-#if defined(__arm__) && defined(LPC_MCPWM_BASE)
+#if defined(__arm__)
 
 /** S 9.1 A specifies that '1's are represented by a square wave with a half-period of 58us (valid range: 55-61us)
     and '0's with a half-period of >100us (valid range: 95-9900us)
@@ -270,7 +270,7 @@ void setup_DCC_waveform_generator()
     one_count_half = PCLK_MCPWM * .000058;
     one_count = one_count_half * 2;
     zero_count_half = PCLK_MCPWM * .000100;
-    zero_hight_count = zero_count_half * 2;
+    zero_high_count = zero_count_half * 2;
     zero_low_count = zero_high_count;
     //We start with a '1' because that is a safe value.
     config.channelPeriodValue = one_count; //LIMIT value

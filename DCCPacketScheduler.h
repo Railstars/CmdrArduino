@@ -25,7 +25,7 @@
 #include <avr/interrupt.h>
 #endif //__AVR__
 
-#if defined(__arm__) && defined(LPC_MCPWM_BASE)
+#if defined(__arm__)
 //The LPC17xx-specific motor controll interrupt
 #include "LPC17xx.h"
 #include "lpc17xx_mcpwm.h"
