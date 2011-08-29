@@ -3,8 +3,6 @@
 #include "DCCPacket.h"
 #include "DCCPacketQueue.h"
 #include "WProgram.h"
-#include <avr/io.h>
-#include <avr/interrupt.h>
 
 #define E_STOP_QUEUE_SIZE           2
 #define HIGH_PRIORITY_QUEUE_SIZE    10
@@ -21,6 +19,17 @@
 #define E_STOP_REPEAT     5
 #define OPS_MODE_PROGRAMMING_REPEAT 3
 #define OTHER_REPEAT      2
+
+#if defined(__AVR__)
+#include <avr/io.h>
+#include <avr/interrupt.h>
+#endif //__AVR__
+
+#if defined(__arm__) && defined(LPC_MCPWM_BASE)
+//The LPC17xx-specific motor controll interrupt
+#include "LPC17xx.h"
+#include "lpc17xx_mcpwm.h"
+#endif //__arm__
 
 class DCCPacketScheduler
 {

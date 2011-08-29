@@ -12,7 +12,7 @@
  *
  * based on software by Wolfgang Kufer, http://opendcc.de
  *
- * Copyright 2010 Don Goodman-Wilson
+ * Copyright 2010, 2011 Don Goodman-Wilson
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -61,6 +61,8 @@ volatile byte current_bit_counter = 14; //init to 14 1's for the preamble
 //byte DCC_Reset_Packet[3] = {0,0,0};
 
 
+/************AVR CODE*************/
+#if defined(__AVR__)
 /// Timer1 TOP values for one and zero
 /** S 9.1 A specifies that '1's are represented by a square wave with a half-period of 58us (valid range: 55-61us)
     and '0's with a half-period of >100us (valid range: 95-9900us)
@@ -222,6 +224,48 @@ ISR(TIMER1_COMPA_vect)
     }
   }
 }
+
+#endif /***AVR CODE***/
+
+/************ARM CODE*************/
+#if defined(__arm__) && defined(LPC_MCPWM_BASE)
+
+/** S 9.1 A specifies that '1's are represented by a square wave with a half-period of 58us (valid range: 55-61us)
+    and '0's with a half-period of >100us (valid range: 95-9900us)
+    Because '0's are stretched to provide DC power to non-DCC locos, we need two zero counters,
+     one for the top half, and one for the bottom half.
+
+ARM does things, as you might imagine, a bit differently than AVR. Here, we are going to rely on the
+LPC17xx motor-control PWM peripheral to do the heavy lifting for us. Very handy, that!
+
+**/
+
+void setup_DCC_waveform_generator()
+{
+    MCPWM_Init(LPC_MCPWM);
+//    MCPWM_ConfigChannel(LPC_MCPWM_TypeDef *MCPWMx, uint32_t channelNum,
+//            MCPWM_CHANNEL_CFG_Type * channelSetup)
+    MCPWM_CHANNEL_CFG_Type config;
+    config.channelType = MCPWM_CHANNEL_EDGE_MODE;
+    config.channelPolarity = MCPWM_CHANNEL_PASSIVE_LO; //TODO REALLY!?
+    config.channelDeadtimeEnable = DISABLE;
+    config.channelUpdateEnable = ENABLE; //TODO REALLY!?
+    config.channelTimercounterValue = 0; //TIMER value.
+    config.channelPeriodValue = 0; //LIMIT value TODO how to calculate?
+    config.channelPulsewidthValue = 0; //MATCH value TODO how to calculate?
+    MCPWM_ConfigChannel(LPC_MCPWM, 0, &config);
+}
+
+void DCC_waveform_generation_hasshin()
+{
+  //enable the compare match interrupt
+}
+extern "C" void MCPWM_IRQHandler(void)
+{
+    //This interrupt is called every time that TODO
+}
+
+#endif
 
 ///////////////////////////////////////////////
 ///////////////////////////////////////////////
