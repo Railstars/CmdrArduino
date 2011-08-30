@@ -256,11 +256,24 @@ MCPWM_CHANNEL_CFG_Type MCPWM_config;
 
 void setup_DCC_waveform_generator()
 {
+    //turn on P1.19 and P1.22 as outputs MCOA0 and MCOB0 respectively.
+    PINSEL_CFG_Type PinCfg;
+    PinCfg.Funcnum = 1;
+    PinCfg.Portnum = 1;
+    PinCfg.OpenDrain = 0;
+    PinCfg.Pinmode = 3; //pull-down resistor enabled; just in case we lose the output, this will force
+                        //the output low; when both are low, the h-bridges attached will shut off.
+    PinCfg.Pinnum = 19;
+    PINSEL_ConfigPin(&PinCfg);
+    PinCfg.Pinnum = 22;
+    PINSEL_ConfigPin(&PinCfg);
+
+    //initialize MCPWM peripheral
     MCPWM_Init(LPC_MCPWM);
-//    MCPWM_ConfigChannel(LPC_MCPWM_TypeDef *MCPWMx, uint32_t channelNum,
-//            MCPWM_CHANNEL_CFG_Type * channelSetup)
+
+    //configure MCPWM peripheral
     MCPWM_config.channelType = MCPWM_CHANNEL_EDGE_MODE;
-    MCPWM_config.channelPolarity = MCPWM_CHANNEL_PASSIVE_LO; //TODO REALLY!?
+    MCPWM_config.channelPolarity = MCPWM_CHANNEL_PASSIVE_HI; //This just ensures that MCPWM output A corresponds to DCC signal A
     MCPWM_config.channelDeadtimeEnable = DISABLE;
     MCPWM_config.channelUpdateEnable = ENABLE; //Permit updating of MATCH and LIMIT dynamically.
     MCPWM_config.channelTimercounterValue = 0; //TIMER value. Initialize to 0; will count up from here.
@@ -270,7 +283,7 @@ void setup_DCC_waveform_generator()
     one_count_half = PCLK_MCPWM * .000058;
     one_count = one_count_half * 2;
     zero_count_half = PCLK_MCPWM * .000100;
-    zero_high_count = zero_count_half;
+    zero_high_count = zero_count_half; //the zero counts are seperated out to permit stretched-zero DC operation, currently not implemented
     zero_low_count = zero_high_count;
     //We start with a '1' because that is a safe value.
     MCPWM_config.channelPeriodValue = one_count; //LIMIT value
@@ -293,6 +306,8 @@ void DCC_waveform_generation_hasshin()
 
   //enable the compare match interrupt
   MCPWM_IntConfig(LPC_MCPWM, MCPWM_INTFLAG_MAT0, ENABLE); //interrupt at MATCH (halfway point), very convenient for updating the MATCH and LIMIT for the next period.
+  //Enable CAN Interrupt
+  NVIC_EnableIRQ(MCPWM_IRQn);
 }
 
 extern "C" void MCPWM_IRQHandler(void)
@@ -301,22 +316,10 @@ extern "C" void MCPWM_IRQHandler(void)
     {
         //first clear the interrupt flag, in case this handler gets called a second time for another interrupt source while we are processing this request.
         MCPWM_IntClear(LPC_MCPWM, MCPWM_INTFLAG_MAT0);
-        //This interrupt is called every time that COUNTER = MATCH
-        //update the LIMIT and MATCH values
-        //void MCPWM_WriteToShadow(LPC_MCPWM_TypeDef *MCPWMx, uint32_t channelNum,
-        //                                MCPWM_CHANNEL_CFG_Type *channelSetup)
+        //This interrupt is called every time that COUNTER = MATCH update the LIMIT and MATCH values.
+        //In edge-aligned mode, TIMER automatically resets to 0 when it matches LIMIT. However, this IRQHandler is called well in advance of this point, when TIMER == MATCH, the halfway point to LIMIT. Depending on the next bit to output, we may have to alter the values in MATCH and LIMIT, maybe, to switch between "one" waveform and "zero" waveform. These values will not actually be updated until the TIMER reaches LIMIT and is reset. Thus, anything we set for LIMIT and MATCH doesn't take effect for a few dozen microseconds, so we are setting up the next cycle.
 
-        //in edge-aligned mode, TIMER automatically resets to 0 when it matches LIMIT. However, this
-        //IRQHandler is called well in advance of this point, when TIMER == MATCH, the halfway point to LIMIT.
-        //Depending on the next bit to output, we may have to alter the values in MATCH and LIMIT, maybe.
-        //to switch between "one" waveform and "zero" waveform. These values will not actually be updated
-        //until the TIMER reaches LIMIT and is reset.
-
-
-        //Thus, anything we set for LIMIT and MATCH doesn't take effect for a few dozen microseconds,
-        //so we are setting up the next cycle.
-
-        //time to switch things up, maybe. send the current bit in the current packet.
+        //Send the current bit in the current packet.
         //if this is the last bit to send, queue up another packet (might be the idle packet).
         switch(DCC_state)
         {

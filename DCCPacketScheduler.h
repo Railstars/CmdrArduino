@@ -30,6 +30,7 @@
 #include "LPC17xx.h"
 #include "lpc17xx_mcpwm.h"
 #include "lpc17xx_clkpwr.h"
+#include "lpc17xx_pinsel.h"
 #endif //__arm__
 
 class DCCPacketScheduler
