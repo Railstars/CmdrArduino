@@ -593,9 +593,9 @@ bool DCCPacketScheduler::setSpeed128(unsigned int address, int8_t new_speed)
     dir = 0;
     speed = new_speed * -1;
   }
-  if(!new_speed) //estop!
+  if(!speed) //estop!
     speed_data_bytes[1] = 0x01; //estop
-  else if(new_speed == 1) //regular stop!
+  else if(speed == 1) //regular stop!
     speed_data_bytes[1] = 0x00; //stop
   else //movement
     speed_data_bytes[1] = speed; //no conversion necessary.

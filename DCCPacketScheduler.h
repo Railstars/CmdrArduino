@@ -74,10 +74,9 @@ class DCCPacketScheduler
   
   //  void stashAddress(DCCPacket *p); //remember the address to compare with the next packet
     void repeatPacket(DCCPacket *p); //insert into the appropriate repeat queue
-    byte default_speed_steps;
-    unsigned int last_packet_address;
-  
-    byte packet_counter;
+    uint8_t default_speed_steps;
+    uint8_t packet_counter;
+    uint16_t last_packet_address;
     
     DCCEmergencyQueue e_stop_queue;
     DCCPacketQueue high_priority_queue;
