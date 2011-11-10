@@ -1,8 +1,8 @@
 DCCPacketScheduler	KEYWORD1
 DCCPacket		KEYWORD1
-PacketQueue		KEYWORD1
-RepeatQueue		KEYWORD1
-TemporalQueue		KEYWORD1
+DCCPacketQueue		KEYWORD1
+DCCRepeatQueue		KEYWORD1
+DCCTemporalQueue	KEYWORD1
 setDefaultSpeedSteps	KEYWORD2
 setup			KEYWORD2
 setSpeed		KEYWORD2

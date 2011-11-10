@@ -16,15 +16,16 @@ unsigned int analog_value;
 char speed_byte, old_speed = 0;
 byte count = 0;
 byte prev_state = 1;
-byte F0 = 0;
+boolean toggle = false;
 
 void setup() {
-  Serial.begin(115200);
   dps.setup();
 
   //set up button on pin 4
   pinMode(4, OUTPUT);
   digitalWrite(4, HIGH); //activate built-in pull-up resistor  
+  
+  //Serial.begin(9600);
 }
 
 void loop() {
@@ -33,9 +34,11 @@ void loop() {
   if(button_state && (button_state != prev_state))
   {
     //toggle!
-    F0 = (F0+1)%2;
-    Serial.println(F0,BIN);
-    dps.setFunctions0to4(3,F0<<4);
+    toggle = !toggle;
+    if(toggle)
+      dps.opsProgramCV(3,3,10); //set decoder address 03's CV3 (acceleration rate) to 10
+    else
+      dps.opsProgramCV(3,3,0); //set decoder address 03's CV3 (acceleration rate) to 0
   }
   prev_state = button_state;
 

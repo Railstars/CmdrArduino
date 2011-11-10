@@ -1,15 +1,23 @@
 #include "DCCPacket.h"
 
 
-DCCPacket::DCCPacket(unsigned int decoder_address) : address(decoder_address), size(1), kind(idle_packet_kind), repeat(0)
+DCCPacket::DCCPacket(unsigned int decoder_address) : address(decoder_address), kind(idle_packet_kind), size_repeat(0x40) //size(1), repeat(0)
 {
-  data[0] = 0xFF; //default to idle packet
+  data[0] = 0x00; //default to idle packet
+  data[1] = 0x00;
+  data[2] = 0x00;
 }
 
 byte DCCPacket::getBitstream(byte rawbytes[]) //returns size of array.
 {
-  byte total_size = 1; //minimum size
-  if(address <= 127) //addresses of 127 or higher are 14-bit "extended" addresses
+  int total_size = 1; //minimum size
+  
+  if(kind == idle_packet_kind)  //idle packets work a bit differently:
+  // since the "address" field is 0xFF, the logic below will produce C0 FF 00 3F instead of FF 00 FF
+  {
+    rawbytes[0] = 0xFF;
+  }
+  else if(address <= 127) //addresses of 127 or higher are 14-bit "extended" addresses
   {
     rawbytes[0] = (byte)address;
   }
@@ -21,7 +29,7 @@ byte DCCPacket::getBitstream(byte rawbytes[]) //returns size of array.
   }
   
   byte i;
-  for(i = 0; i < size; ++i,++total_size)
+  for(i = 0; i < (size_repeat>>6); ++i,++total_size)
   {
     rawbytes[total_size] = data[i];
   }
@@ -35,14 +43,6 @@ byte DCCPacket::getBitstream(byte rawbytes[]) //returns size of array.
 
   return total_size+1;  
 }
-
-void DCCPacket::addData(byte new_data[], byte new_size) //insert freeform data.
-{
-  for(int i = 0; i < new_size; ++i)
-    data[i] = new_data[i];
-  size = new_size;
-}
-
 
 /////////////////////////////////////
 
@@ -138,4 +138,16 @@ void DCCExtendedAccessoryPacket::setData(byte new_data)
 {
   data[0] = new_data;
   size = 1;
+}
+
+byte DCCPacket::getSize(void)
+{
+  return (size_repeat>>6);
+}
+
+byte DCCPacket::addData(byte new_data[], byte new_size) //insert freeform data.
+{
+  for(int i = 0; i < new_size; ++i)
+    data[i] = new_data[i];
+  size_repeat = (size_repeat & 0x3F) | (new_size<<6);
 }

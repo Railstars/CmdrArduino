@@ -68,38 +68,58 @@ volatile byte current_bit_counter = 14; //init to 14 1's for the preamble
      one for the top half, and one for the bottom half.
 
    Here is how to calculate the timer1 counter values (from ATMega168 datasheet, 15.9.2):
- f_{OCnA} = \frac{f_{clk_I/O}}{2*N*(1+OCRnA)})
- where N = prescalar, and OCRnA is the TOP we need to calculate.
+ f_{OC1A} = \frac{f_{clk_I/O}}{2*N*(1+OCR1A)})
+ where N = prescalar, and OCR1A is the TOP we need to calculate.
  We know the desired half period for each case, 58us and >100us.
  So:
  for ones:
- 58us = (8*(1+OCRnA)) / (16MHz)
- 58us * 16MHz = 8*(1+OCRnA)
- 58us * 2MHz = 1+OCRnA
+ 58us = (8*(1+OCR1A)) / (16MHz)
+ 58us * 16MHz = 8*(1+OCR1A)
+ 58us * 2MHz = 1+OCR1A
  OCR1A = 115
 
  for zeros:
- 100us * 2MHz = 1+OCRnA
- OCRnA = 199
+ 100us * 2MHz = 1+OCR1A
+ OCR1A = 199
+ 
+ Thus, we also know that the valid range for stretched-zero operation is something like this:
+ 9900us = (8*(1+OCR1A)) / (16MHz)
+ 9900us * 2MHz = 1+OCR1A
+ OCR1A = 19799
+ 
 */
+
 unsigned int one_count=115; //58us
 unsigned int zero_high_count=199; //100us
 unsigned int zero_low_count=199; //100us
 
-
 /// Setup phase: configure and enable timer1 CTC interrupt, set OC1A and OC1B to toggle on CTC
 void setup_DCC_waveform_generator() {
   
-  pinMode(9,OUTPUT); // OC1A = Arduino pin 9; defaults to outputting low
+ //Set the OC1A and OC1B pins (Timer1 output pins A and B) to output mode
+ //On Arduino UNO, etc, OC1A is Port B/Pin 1 and OC1B Port B/Pin 2
+ //On Arduino MEGA, etc, OC1A is or Port B/Pin 5 and OC1B Port B/Pin 6
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(__AVR_AT90CAN128__) || defined(__AVR_AT90CAN64__) || defined(__AVR_AT90CAN32__)
+  DDRB |= (1<<DDB5) | (1<<DDB6);
+#else
+  DDRB |= (1<<DDB1) | (1<<DDB2);
+#endif
 
   // Configure timer1 in CTC mode, for waveform generation, set to toggle OC1A, OC1B, at /8 prescalar, interupt at CTC
-  TCCR1A = (0<<COM1A1) | (1<<COM1A0) | (0<<COM1B1) | (0<<COM1B0) | (0<<WGM11) | (0<<WGM10);
+  TCCR1A = (0<<COM1A1) | (1<<COM1A0) | (0<<COM1B1) | (1<<COM1B0) | (0<<WGM11) | (0<<WGM10);
   TCCR1B = (0<<ICNC1)  | (0<<ICES1)  | (0<<WGM13)  | (1<<WGM12)  | (0<<CS12)  | (1<<CS11) | (0<<CS10);
 
   // start by outputting a '1'
-  OCR1A = one_count;
-  TCNT1 = 0; //get the timer rolling
-  
+  OCR1A = OCR1B = one_count; //Whenever we set OCR1A, we must also set OCR1B, or else pin OC1B will get out of sync with OC1A!
+  TCNT1 = 0; //get the timer rolling (not really necessary? defaults to 0. Just in case.)
+    
+  //finally, force a toggle on OC1B so that pin OC1B will always complement pin OC1A
+  TCCR1C |= (1<<FOC1B);
+
+}
+
+void DCC_waveform_generation_hasshin()
+{
   //enable the compare match interrupt
   TIMSK1 |= (1<<OCIE1A);
 }
@@ -113,11 +133,18 @@ ISR(TIMER1_COMPA_vect)
   
   //remember, anything we set for OCR1A takes effect IMMEDIATELY, so we are working within the cycle we are setting.
   //first, check to see if we're in the second half of a byte; only act on the first half of a byte
-  if(!(PINB & (1<<PORTB1))) //if the pin is low, we need to use a different zero counter to enable streched-zero DC operation
+  //On Arduino UNO, etc, OC1A is digital pin 9, or Port B/Pin 1
+  //On Arduino MEGA, etc, OC1A is digital pin 11, or Port B/Pin 5
+#if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(__AVR_AT90CAN128__) || defined(__AVR_AT90CAN64__) || defined(__AVR_AT90CAN32__)
+  if(PINB & (1<<PINB6)) //if the pin is low, we need to use a different zero counter to enable streched-zero DC operation
+#else
+  if(PINB & (1<<PINB1)) //if the pin is low, we need to use a different zero counter to enable streched-zero DC operation
+#endif
+
   {
     if(OCR1A == zero_high_count) //if the pin is low and outputting a zero, we need to be using zero_low_count
       {
-        OCR1A = zero_low_count;
+        OCR1A = OCR1B = zero_low_count;
       }
   }
   else //the pin is high. New cycle is begining. Here's where the real work goes.
@@ -130,36 +157,48 @@ ISR(TIMER1_COMPA_vect)
       case dos_idle:
         if(!current_byte_counter) //if no new packet
         {
-          //Serial.println("X");
-          OCR1A=one_count; //just send ones if we don't know what else to do. safe bet.
+//          Serial.println("X");
+          OCR1A = OCR1B = one_count; //just send ones if we don't know what else to do. safe bet.
           break;
         }
+        //looks like there's a new packet for us to dump on the wire!
+        //for debugging purposes, let's print it out
+//        if(current_packet[1] != 0xFF)
+//        {
+//          Serial.print("Packet: ");
+//          for(byte j = 0; j < current_packet_size; ++j)
+//          {
+//            Serial.print(current_packet[j],HEX);
+//            Serial.print(" ");
+//          }
+//          Serial.println("");
+//        }
         DCC_state = dos_send_preamble; //and fall through to dos_send_preamble
       /// Preamble: In the process of producing 14 '1's, counter by current_bit_counter; when complete, move to dos_send_bstart
       case dos_send_preamble:
-        OCR1A=one_count;
-        //Serial.print("1");
+        OCR1A = OCR1B = one_count;
+//        Serial.print("P");
         if(!--current_bit_counter)
           DCC_state = dos_send_bstart;
         break;
       /// About to send a data byte, but have to peceed the data with a '0'. Send that '0', then move to dos_send_byte
       case dos_send_bstart:
-        OCR1A=zero_high_count;
+        OCR1A = OCR1B = zero_high_count;
         DCC_state = dos_send_byte;
         current_bit_counter = 8;
-        //Serial.print(" 0 ");
+//        Serial.print(" 0 ");
         break;
       /// Sending a data byte; current bit is tracked with current_bit_counter, and current byte with current_byte_counter
       case dos_send_byte:
         if(((current_packet[current_packet_size-current_byte_counter])>>(current_bit_counter-1)) & 1) //is current bit a '1'?
         {
-          OCR1A = one_count;
-          //Serial.print("1");
+          OCR1A = OCR1B = one_count;
+//          Serial.print("1");
         }
         else //or is it a '0'
         {
-          OCR1A = zero_high_count;
-          //Serial.print("0");
+          OCR1A = OCR1B = zero_high_count;
+//          Serial.print("0");
         }
         if(!--current_bit_counter) //out of bits! time to either send a new byte, or end the packet
         {
@@ -175,10 +214,10 @@ ISR(TIMER1_COMPA_vect)
         break;
       /// Done with the packet. Send out a final '1', then head back to dos_idle to check for a new packet.
       case dos_end_bit:
-        OCR1A = one_count;
+        OCR1A = OCR1B = one_count;
         DCC_state = dos_idle;
         current_bit_counter = 14; //in preparation for a premable...
-        //Serial.println(" 1");
+//        Serial.println(" 1");
         break;
     }
   }
@@ -194,7 +233,7 @@ DCCPacketScheduler::DCCPacketScheduler(void) : packet_counter(1), default_speed_
   high_priority_queue.setup(HIGH_PRIORITY_QUEUE_SIZE);
   low_priority_queue.setup(LOW_PRIORITY_QUEUE_SIZE);
   repeat_queue.setup(REPEAT_QUEUE_SIZE);
-  periodic_refresh_queue.setup(PERIODIC_REFRESH_QUEUE_SIZE);
+  //periodic_refresh_queue.setup(PERIODIC_REFRESH_QUEUE_SIZE);
 }
     
 //for configuration
@@ -207,8 +246,11 @@ void DCCPacketScheduler::setup(void) //for any post-constructor initialization
 {
   setup_DCC_waveform_generator();
   
+  //TODO ELIMINATE THE JERKY START! WHAT'S GOING ON!?
+
   //Following RP 9.2.4, begin by putting 20 reset packets and 10 idle packets on the rails.
   //use the e_stop_queue to do this, to ensure these packets go out first!
+
   
   DCCPacket p;
   byte data[] = {0x00};
@@ -220,11 +262,17 @@ void DCCPacketScheduler::setup(void) //for any post-constructor initialization
   p.setKind(reset_packet_kind);
   e_stop_queue.insertPacket(&p);
   
+  //WHy in the world is it that what gets put on the rails is 4 reset packets, followed by
+  //10 god know's what, followed by something else?
+  // C0 FF 00 FF
+  // 00 FF FF   what are these?
+  
   //idle packet: address 0xFF, data 0x00, XOR 0xFF; S 9.2 line 90
   p.setAddress(0xFF);
   p.setRepeat(10);
   p.setKind(idle_packet_kind);
   e_stop_queue.insertPacket(&p); //e_stop_queue will be empty, so no need to check if insertion was OK.
+  
 }
 
 //helper functions
@@ -236,9 +284,11 @@ void DCCPacketScheduler::repeatPacket(DCCPacket *p)
     case e_stop_packet_kind: //e_stop packets automatically repeat without having to be put in a special queue
       break;
     case speed_packet_kind: //speed packets go to the periodic_refresh queue
-      periodic_refresh_queue.insertPacket(p);
-      break;
-    case function_packet_kind: //all other packets go to the repeat_queue
+    //  periodic_refresh_queue.insertPacket(p);
+    //  break;
+    case function_packet_1_kind: //all other packets go to the repeat_queue
+    case function_packet_2_kind: //all other packets go to the repeat_queue
+    case function_packet_3_kind: //all other packets go to the repeat_queue
     case accessory_packet_kind:
     case reset_packet_kind:
     case ops_mode_programming_kind:
@@ -249,6 +299,13 @@ void DCCPacketScheduler::repeatPacket(DCCPacket *p)
 }
     
 //for enqueueing packets
+
+//setSpeed* functions:
+//new_speed contains the speed and direction.
+// a value of 0 = estop
+// a value of 1/-1 = stop
+// a value >1 (or <-1) means go.
+// valid non-estop speeds are in the range [1,127] / [-127,-1] with 1 = stop
 bool DCCPacketScheduler::setSpeed(unsigned int address,  char new_speed, byte steps)
 {
   byte num_steps = steps;
@@ -279,8 +336,12 @@ bool DCCPacketScheduler::setSpeed14(unsigned int address, char new_speed, bool F
     dir = 0;
     speed = new_speed * -1;
   }
-  if(new_speed) //leave at 0 for stop.
-    speed_data_bytes[0] |= ((13*speed) / 127)+2; //convert from [1-127] to [2-15]
+  if(!new_speed) //estop!
+    speed_data_bytes[0] |= 0x01; //estop
+  else if(new_speed == 1) //regular stop!
+    speed_data_bytes[0] |= 0x00; //stop
+  else //movement
+    speed_data_bytes[0] |= map(speed, 2, 127, 2, 15); //convert from [2-127] to [1-14]
   speed_data_bytes[0] |= (0x20*dir); //flip bit 3 to indicate direction;
   //Serial.println(speed_data_bytes[0],BIN);
   p.addData(speed_data_bytes,1);
@@ -305,9 +366,13 @@ bool DCCPacketScheduler::setSpeed28(unsigned int address, char new_speed)
     dir = 0;
     speed = new_speed * -1;
   }
-  if(new_speed) //leave at 0 for stop.
+  if(!new_speed) //estop!
+    speed_data_bytes[0] |= 0x01; //estop
+  else if(new_speed == 1) //regular stop!
+    speed_data_bytes[0] |= 0x00; //stop
+  else //movement
   {
-    speed_data_bytes[0] |= ((27*speed) / 127)+3; //convert from [1-127] to [3-31]
+    speed_data_bytes[0] |= map(speed, 2, 127, 2, 0X1F); //convert from [2-127] to [2-31]  
     //most least significant bit has to be shufled around
     speed_data_bytes[0] = (speed_data_bytes[0]&0xE0) | ((speed_data_bytes[0]&0x1F) >> 1) | ((speed_data_bytes[0]&0x01) << 4);
   }
@@ -327,16 +392,26 @@ bool DCCPacketScheduler::setSpeed28(unsigned int address, char new_speed)
 
 bool DCCPacketScheduler::setSpeed128(unsigned int address, char new_speed)
 {
+  //why do we get things like this?
+  // 03 3F 16 15 3F (speed packet addressed to loco 03)
+  // 03 3F 11 82 AF  (speed packet addressed to loco 03, speed hex 0x11);
   DCCPacket p(address);
   byte dir = 1;
-  byte speed_data_bytes[] = {0x3F,new_speed};
+  unsigned int speed = new_speed;
+  byte speed_data_bytes[] = {0x3F,0x00};
   if(new_speed<0)
   {
     dir = 0;
-    speed_data_bytes[1] = new_speed * -1;
+    speed = new_speed * -1;
   }
-  
-  speed_data_bytes[1] |= (0x80*dir); //flip bit 0 to indicate direction;
+  if(!new_speed) //estop!
+    speed_data_bytes[1] = 0x01; //estop
+  else if(new_speed == 1) //regular stop!
+    speed_data_bytes[1] = 0x00; //stop
+  else //movement
+    speed_data_bytes[1] = speed; //no conversion necessary.
+
+  speed_data_bytes[1] |= (0x80*dir); //flip bit 7 to indicate direction;
   p.addData(speed_data_bytes,2);
   //Serial.print(speed_data_bytes[0],BIN);
   //Serial.print(" ");
@@ -351,6 +426,16 @@ bool DCCPacketScheduler::setSpeed128(unsigned int address, char new_speed)
   return(high_priority_queue.insertPacket(&p));
 }
 
+bool DCCPacketScheduler::setFunctions(unsigned int address, uint16_t functions)
+{
+//  Serial.println(functions,HEX);
+  if(setFunctions0to4(address, functions&0x1F))
+    if(setFunctions5to8(address, (functions>>5)&0x0F))
+      if(setFunctions9to12(address, (functions>>9)&0x0F))
+        return true;
+  return false;
+}
+
 bool DCCPacketScheduler::setFunctions(unsigned int address, byte F0to4, byte F5to8, byte F9to12)
 {
   if(setFunctions0to4(address, F0to4))
@@ -362,13 +447,21 @@ bool DCCPacketScheduler::setFunctions(unsigned int address, byte F0to4, byte F5t
 
 bool DCCPacketScheduler::setFunctions0to4(unsigned int address, byte functions)
 {
+//  Serial.println("setFunctions0to4");
+//  Serial.println(functions,HEX);
   DCCPacket p(address);
   byte data[] = {0x80};
   
-  data[0] |= functions & 0x1F;
+  //Obnoxiously, the headlights (F0, AKA FL) are not controlled
+  //by bit 0, but by bit 4. Really?
   
+  //get functions 1,2,3,4
+  data[0] |= (functions>>1) & 0x0F;
+  //get functions 0
+  data[0] |= (functions&0x01) << 4;
+
   p.addData(data,1);
-  p.setKind(function_packet_kind);
+  p.setKind(function_packet_1_kind);
   p.setRepeat(FUNCTION_REPEAT);
   return(low_priority_queue.insertPacket(&p));
 }
@@ -376,27 +469,31 @@ bool DCCPacketScheduler::setFunctions0to4(unsigned int address, byte functions)
 
 bool DCCPacketScheduler::setFunctions5to8(unsigned int address, byte functions)
 {
+//  Serial.println("setFunctions5to8");
+//  Serial.println(functions,HEX);
   DCCPacket p(address);
-  byte data[] = {0xA0};
+  byte data[] = {0xB0};
   
   data[0] |= functions & 0x0F;
   
   p.addData(data,1);
-  p.setKind(function_packet_kind);
+  p.setKind(function_packet_2_kind);
   p.setRepeat(FUNCTION_REPEAT);
   return(low_priority_queue.insertPacket(&p));
 }
 
 bool DCCPacketScheduler::setFunctions9to12(unsigned int address, byte functions)
 {
+//  Serial.println("setFunctions9to12");
+//  Serial.println(functions,HEX);
   DCCPacket p(address);
-  byte data[] = {0xB0};
+  byte data[] = {0xA0};
   
   //least significant four functions (F5--F8)
-  data[0] |= functions & 0xF0;
+  data[0] |= functions & 0x0F;
   
   p.addData(data,1);
-  p.setKind(function_packet_kind);
+  p.setKind(function_packet_3_kind);
   p.setRepeat(FUNCTION_REPEAT);
   return(low_priority_queue.insertPacket(&p));
 }
@@ -489,31 +586,36 @@ bool DCCPacketScheduler::opsProgramCV(unsigned int address, unsigned int CV, byt
 }
     
 
+//broadcast e-stop command
 bool DCCPacketScheduler::eStop(void)
 {
-  DCCPacket e_stop_packet;
-  byte data[] = {0x41};
-  //add data, repeat, etc.
-  e_stop_packet.addData(data,1);
-  e_stop_packet.setKind(e_stop_packet_kind);
-  e_stop_packet.setRepeat(E_STOP_REPEAT);
-  return(e_stop_queue.insertPacket(&e_stop_packet));
+    // 111111111111 0 00000000 0 01DC0001 0 EEEEEEEE 1
+    DCCPacket e_stop_packet = DCCPacket(); //address 0
+    byte data[] = {0x71}; //01110001
+    e_stop_packet.addData(data,1);
+    e_stop_packet.setKind(e_stop_packet_kind);
+    e_stop_packet.setRepeat(10);
+    e_stop_queue.insertPacket(&e_stop_packet);
 }
     
 bool DCCPacketScheduler::eStop(unsigned int address)
 {
-  DCCPacket e_stop_packet(address);
-  byte data[] = {0x41};
-  //add data, repeat, etc.
-  e_stop_packet.addData(data,1);
-  e_stop_packet.setKind(e_stop_packet_kind);
-  e_stop_packet.setRepeat(E_STOP_REPEAT);
-  return(e_stop_queue.insertPacket(&e_stop_packet));
+    // 111111111111 0	0AAAAAAA 0 01001001 0 EEEEEEEE 1
+    // or
+    // 111111111111 0	0AAAAAAA 0 01000001 0 EEEEEEEE 1
+    DCCPacket e_stop_packet = DCCPacket(address);
+    byte data[] = {0x41}; //01000001
+    e_stop_packet.addData(data,1);
+    e_stop_packet.setKind(e_stop_packet_kind);
+    e_stop_packet.setRepeat(10);
+    e_stop_queue.insertPacket(&e_stop_packet);
 }
 
 //to be called periodically within loop()
 void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending on the rails via global current_packet. easy-peasy
 {
+  DCC_waveform_generation_hasshin();
+
   //TODO ADD POM QUEUE?
   if(!current_byte_counter) //if the ISR needs a packet:
   {
@@ -535,15 +637,16 @@ void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending o
                   !((packet_counter % LOW_PRIORITY_INTERVAL) && doHigh);
       bool doRepeat = repeat_queue.notEmpty() && repeat_queue.notRepeat(last_packet_address) &&
                   !((packet_counter % REPEAT_INTERVAL) && (doHigh || doLow));
-      bool doRefresh = periodic_refresh_queue.notEmpty() && periodic_refresh_queue.notRepeat(last_packet_address) &&
-                  !((packet_counter % PERIODIC_REFRESH_INTERVAL) && (doHigh || doLow || doRepeat));
+      //bool doRefresh = periodic_refresh_queue.notEmpty() && periodic_refresh_queue.notRepeat(last_packet_address) &&
+      //            !((packet_counter % PERIODIC_REFRESH_INTERVAL) && (doHigh || doLow || doRepeat));
       //examine queues in order from lowest priority to highest.
-      if(doRefresh)
-      {
-        periodic_refresh_queue.readPacket(&p);
-        ++packet_counter;
-      }
-      else if(doRepeat)
+      //if(doRefresh)
+      //{
+      //  periodic_refresh_queue.readPacket(&p);
+      //  ++packet_counter;
+      //}
+      //else if(doRepeat)
+      if(doRepeat)
       {
         repeat_queue.readPacket(&p);
         ++packet_counter;
