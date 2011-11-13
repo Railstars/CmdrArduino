@@ -72,7 +72,7 @@ byte DCCAccessoryPacket::getBitstream(byte rawbytes[])
   //now, add any programming bytes (skipping first data byte, of course)
   byte i;
   byte total_size = 2;
-  for(i = 1; i < size; ++i,++total_size)
+  for(i = 1; i < getSize(); ++i,++total_size)
   {
     rawbytes[total_size] = data[i];
   }
@@ -91,7 +91,7 @@ byte DCCAccessoryPacket::getBitstream(byte rawbytes[])
 void DCCAccessoryPacket::setData(byte new_data)
 {
   data[0] = new_data;
-  size = 1;
+  size_repeat = (size_repeat & 0x3F) | (1<<6);
 }
 
 /////////////////////////////////
@@ -118,7 +118,7 @@ byte DCCExtendedAccessoryPacket::getBitstream(byte rawbytes[])
   //now, add any programming bytes (skipping first data byte, of course)
   byte i;
   byte total_size = 2;
-  for(i = 0; i < size; ++i,++total_size)
+  for(i = 0; i < getSize(); ++i,++total_size)
   {
     rawbytes[total_size] = data[i];
   }
@@ -137,7 +137,7 @@ byte DCCExtendedAccessoryPacket::getBitstream(byte rawbytes[])
 void DCCExtendedAccessoryPacket::setData(byte new_data)
 {
   data[0] = new_data;
-  size = 1;
+  size_repeat = (size_repeat & 0x3F) | (1<<6);
 }
 
 byte DCCPacket::getSize(void)

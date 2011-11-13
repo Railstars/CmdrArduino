@@ -33,7 +33,7 @@ typedef unsigned char byte;
 
 class DCCPacket
 {
-  private:
+  protected:
    //A DCC packet is at most 6 bytes: 2 of address, three of data, one of XOR
     unsigned int address;
     byte data[3];
@@ -44,7 +44,7 @@ class DCCPacket
     DCCPacket(unsigned int decoder_address=0xFF);
     
     virtual byte getBitstream(byte rawbytes[]); //returns size of array.
-    inline byte getSize(void) { return size; }
+    inline byte getSize(void);
     inline unsigned int getAddress(void) { return address; }
     inline void setAddress(unsigned int new_address) { address = new_address; }
     byte addData(byte new_data[], byte new_size); //insert freeform data.
