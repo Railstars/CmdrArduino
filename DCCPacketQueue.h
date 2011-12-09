@@ -29,7 +29,14 @@
 #ifndef __DCCPACKETQUEUE_H__
 #define __DCCPACKETQUEUE_H__
 
-#include "WProgram.h"
+#include "Arduino.h"
+
+/**
+ * A FIFO queue for holding DCC packets, implemented as a circular buffer.
+ * Copyright 2010 D.E. Goodman-Wilson
+ * TODO
+**/
+
 #include "DCCPacket.h"
 
 /**

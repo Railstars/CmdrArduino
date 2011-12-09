@@ -2,7 +2,7 @@
 #define __DCCCOMMANDSTATION_H__
 #include "DCCPacket.h"
 #include "DCCPacketQueue.h"
-#include "WProgram.h"
+#include "Arduino.h"
 
 #define E_STOP_QUEUE_SIZE           2
 #define HIGH_PRIORITY_QUEUE_SIZE    10

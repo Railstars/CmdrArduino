@@ -24,7 +24,7 @@
 #ifndef __DCCPACKET_H__
 #define __DCCPACKET_H__
 
-#include "WProgram.h"
+#include "Arduino.h"
 
 typedef uint8_t byte;
 
