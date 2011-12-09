@@ -2,7 +2,7 @@
 #define __DCCCOMMANDSTATION_H__
 #include "DCCPacket.h"
 #include "DCCPacketQueue.h"
-#include "WProgram.h"
+#include "Arduino.h"
 #include <avr/io.h>
 #include <avr/interrupt.h>
 
