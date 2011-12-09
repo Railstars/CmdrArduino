@@ -257,6 +257,7 @@ MCPWM_CHANNEL_CFG_Type MCPWM_config;
 void setup_DCC_waveform_generator()
 {
     //turn on P1.19 and P1.22 as outputs MCOA0 and MCOB0 respectively.
+    // Notice that these are PAD2 and PAD5 on LPCXpresso1769!
     PINSEL_CFG_Type PinCfg;
     PinCfg.Funcnum = 1;
     PinCfg.Portnum = 1;
@@ -462,6 +463,7 @@ void DCCPacketScheduler::setup(void) //for any post-constructor initialization
   p.setKind(idle_packet_kind);
   e_stop_queue.insertPacket(&p); //e_stop_queue will be empty, so no need to check if insertion was OK.
   
+  DCC_waveform_generation_hasshin(); //TODO this looks better here than in update, ne?
 }
 
 //helper functions
@@ -746,7 +748,8 @@ bool DCCPacketScheduler::eStop(unsigned int address)
 //to be called periodically within loop()
 void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending on the rails via global current_packet. easy-peasy
 {
-  DCC_waveform_generation_hasshin();
+    //TODO why are we calling this every update?
+//  DCC_waveform_generation_hasshin();
 
   //TODO ADD POM QUEUE?
   if(!current_byte_counter) //if the ISR needs a packet:
