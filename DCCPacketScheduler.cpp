@@ -312,7 +312,7 @@ bool DCCPacketScheduler::setSpeed(unsigned int address,  char new_speed, byte st
   //steps = 0 means use the default; otherwise use the number of steps specified
   if(!steps)
     num_steps = default_speed_steps;
-    
+        
   switch(num_steps)
   {
     case 14:
@@ -366,7 +366,9 @@ bool DCCPacketScheduler::setSpeed28(unsigned int address, char new_speed)
     dir = 0;
     speed = new_speed * -1;
   }
-  if(!new_speed) //estop!
+//  Serial.println(speed);
+//  Serial.println(dir);
+  if(speed == 0) //estop!
     speed_data_bytes[0] |= 0x01; //estop
   else if(new_speed == 1) //regular stop!
     speed_data_bytes[0] |= 0x00; //stop
@@ -377,7 +379,8 @@ bool DCCPacketScheduler::setSpeed28(unsigned int address, char new_speed)
     speed_data_bytes[0] = (speed_data_bytes[0]&0xE0) | ((speed_data_bytes[0]&0x1F) >> 1) | ((speed_data_bytes[0]&0x01) << 4);
   }
   speed_data_bytes[0] |= (0x20*dir); //flip bit 3 to indicate direction;
-  //Serial.println(speed_data_bytes[0],BIN);
+//  Serial.println(speed_data_bytes[0],BIN);
+//  Serial.println("=======");
   p.addData(speed_data_bytes,1);
   
   p.setRepeat(SPEED_REPEAT);
