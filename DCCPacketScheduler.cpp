@@ -33,32 +33,32 @@
       *dos_idle: there is nothing to put on the rails. In this case, the only legal thing
                  to do is to put a '1' on the rails.  The ISR should almost never be in this state.
       *dos_send_premable: A packet has been made available, and so we should broadcast the preamble: 14 '1's in a row
-      *dos_send_bstart: Each data byte is preceded by a '0'
-      *dos_send_byte: Sending the current data byte
-      *dos_end_bit: After the final byte is sent, send a '0'.
+      *dos_send_bstart: Each data uint8_t is preceded by a '0'
+      *dos_send_uint8_t: Sending the current data uint8_t
+      *dos_end_bit: After the final uint8_t is sent, send a '0'.
 */                 
 enum DCC_output_state_t {
   dos_idle,
   dos_send_preamble,
   dos_send_bstart,
-  dos_send_byte,
+  dos_send_uint8_t,
   dos_end_bit
 };
 
 DCC_output_state_t DCC_state = dos_idle; //just to start out
 
 /// The currently queued packet to be put on the rails. Default is a reset packet.
-byte current_packet[6] = {0,0,0,0,0,0};
-/// How many data bytes in the queued packet?
-volatile byte current_packet_size = 0;
-/// How many bytes remain to be put on the rails?
-volatile byte current_byte_counter = 0;
-/// How many bits remain in the current data byte/preamble before changing states?
-volatile byte current_bit_counter = 14; //init to 14 1's for the preamble
+uint8_t current_packet[6] = {0,0,0,0,0,0};
+/// How many data uint8_ts in the queued packet?
+volatile uint8_t current_packet_size = 0;
+/// How many uint8_ts remain to be put on the rails?
+volatile uint8_t current_uint8_t_counter = 0;
+/// How many bits remain in the current data uint8_t/preamble before changing states?
+volatile uint8_t current_bit_counter = 14; //init to 14 1's for the preamble
 /// A fixed-content packet to send when idle
-//byte DCC_Idle_Packet[3] = {255,0,255};
+//uint8_t DCC_Idle_Packet[3] = {255,0,255};
 /// A fixed-content packet to send to reset all decoders on layout
-//byte DCC_Reset_Packet[3] = {0,0,0};
+//uint8_t DCC_Reset_Packet[3] = {0,0,0};
 
 
 /// Timer1 TOP values for one and zero
@@ -89,9 +89,9 @@ volatile byte current_bit_counter = 14; //init to 14 1's for the preamble
  
 */
 
-unsigned int one_count=115; //58us
-unsigned int zero_high_count=199; //100us
-unsigned int zero_low_count=199; //100us
+uint16_t one_count=115; //58us
+uint16_t zero_high_count=199; //100us
+uint16_t zero_low_count=199; //100us
 
 /// Setup phase: configure and enable timer1 CTC interrupt, set OC1A and OC1B to toggle on CTC
 void setup_DCC_waveform_generator() {
@@ -132,7 +132,7 @@ ISR(TIMER1_COMPA_vect)
   //to switch between "one" waveform and "zero" waveform, we assign a value to OCR1A.
   
   //remember, anything we set for OCR1A takes effect IMMEDIATELY, so we are working within the cycle we are setting.
-  //first, check to see if we're in the second half of a byte; only act on the first half of a byte
+  //first, check to see if we're in the second half of a uint8_t; only act on the first half of a uint8_t
   //On Arduino UNO, etc, OC1A is digital pin 9, or Port B/Pin 1
   //On Arduino MEGA, etc, OC1A is digital pin 11, or Port B/Pin 5
 #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(__AVR_AT90CAN128__) || defined(__AVR_AT90CAN64__) || defined(__AVR_AT90CAN32__)
@@ -155,7 +155,7 @@ ISR(TIMER1_COMPA_vect)
     {
       /// Idle: Check if a new packet is ready. If it is, fall through to dos_send_premable. Otherwise just stick a '1' out there.
       case dos_idle:
-        if(!current_byte_counter) //if no new packet
+        if(!current_uint8_t_counter) //if no new packet
         {
 //          Serial.println("X");
           OCR1A = OCR1B = one_count; //just send ones if we don't know what else to do. safe bet.
@@ -166,7 +166,7 @@ ISR(TIMER1_COMPA_vect)
 //        if(current_packet[1] != 0xFF)
 //        {
 //          Serial.print("Packet: ");
-//          for(byte j = 0; j < current_packet_size; ++j)
+//          for(uint8_t j = 0; j < current_packet_size; ++j)
 //          {
 //            Serial.print(current_packet[j],HEX);
 //            Serial.print(" ");
@@ -181,16 +181,16 @@ ISR(TIMER1_COMPA_vect)
         if(!--current_bit_counter)
           DCC_state = dos_send_bstart;
         break;
-      /// About to send a data byte, but have to peceed the data with a '0'. Send that '0', then move to dos_send_byte
+      /// About to send a data uint8_t, but have to peceed the data with a '0'. Send that '0', then move to dos_send_uint8_t
       case dos_send_bstart:
         OCR1A = OCR1B = zero_high_count;
-        DCC_state = dos_send_byte;
+        DCC_state = dos_send_uint8_t;
         current_bit_counter = 8;
 //        Serial.print(" 0 ");
         break;
-      /// Sending a data byte; current bit is tracked with current_bit_counter, and current byte with current_byte_counter
-      case dos_send_byte:
-        if(((current_packet[current_packet_size-current_byte_counter])>>(current_bit_counter-1)) & 1) //is current bit a '1'?
+      /// Sending a data uint8_t; current bit is tracked with current_bit_counter, and current uint8_t with current_uint8_t_counter
+      case dos_send_uint8_t:
+        if(((current_packet[current_packet_size-current_uint8_t_counter])>>(current_bit_counter-1)) & 1) //is current bit a '1'?
         {
           OCR1A = OCR1B = one_count;
 //          Serial.print("1");
@@ -200,13 +200,13 @@ ISR(TIMER1_COMPA_vect)
           OCR1A = OCR1B = zero_high_count;
 //          Serial.print("0");
         }
-        if(!--current_bit_counter) //out of bits! time to either send a new byte, or end the packet
+        if(!--current_bit_counter) //out of bits! time to either send a new uint8_t, or end the packet
         {
-          if(!--current_byte_counter) //if not more bytes, move to dos_end_bit
+          if(!--current_uint8_t_counter) //if not more uint8_ts, move to dos_end_bit
           {
             DCC_state = dos_end_bit;
           }
-          else //there are more bytes…so, go back to dos_send_bstart
+          else //there are more uint8_ts…so, go back to dos_send_bstart
           {
             DCC_state = dos_send_bstart;
           }
@@ -237,7 +237,7 @@ DCCPacketScheduler::DCCPacketScheduler(void) : packet_counter(1), default_speed_
 }
     
 //for configuration
-void DCCPacketScheduler::setDefaultSpeedSteps(byte new_speed_steps)
+void DCCPacketScheduler::setDefaultSpeedSteps(uint8_t new_speed_steps)
 {
   default_speed_steps = new_speed_steps;
 }
@@ -253,7 +253,7 @@ void DCCPacketScheduler::setup(void) //for any post-constructor initialization
 
   
   DCCPacket p;
-  byte data[] = {0x00};
+  uint8_t data[] = {0x00};
   
   //reset packet: address 0x00, data 0x00, XOR 0x00; S 9.2 line 75
   p.addData(data,1);
@@ -306,9 +306,9 @@ void DCCPacketScheduler::repeatPacket(DCCPacket *p)
 // a value of 1/-1 = stop
 // a value >1 (or <-1) means go.
 // valid non-estop speeds are in the range [1,127] / [-127,-1] with 1 = stop
-bool DCCPacketScheduler::setSpeed(unsigned int address,  char new_speed, byte steps)
+bool DCCPacketScheduler::setSpeed(uint16_t address, uint8_t address_kind, int8_t new_speed, uint8_t steps)
 {
-  byte num_steps = steps;
+  uint8_t num_steps = steps;
   //steps = 0 means use the default; otherwise use the number of steps specified
   if(!steps)
     num_steps = default_speed_steps;
@@ -316,35 +316,35 @@ bool DCCPacketScheduler::setSpeed(unsigned int address,  char new_speed, byte st
   switch(num_steps)
   {
     case 14:
-      return(setSpeed14(address, new_speed));
+      return(setSpeed14(address, address_kind, new_speed));
     case 28:
-      return(setSpeed28(address, new_speed));
+      return(setSpeed28(address, address_kind, new_speed));
     case 128:
-      return(setSpeed128(address, new_speed));
+      return(setSpeed128(address, address_kind, new_speed));
   }
   return false; //invalid number of steps specified.
 }
 
-bool DCCPacketScheduler::setSpeed14(unsigned int address, char new_speed, bool F0)
+bool DCCPacketScheduler::setSpeed14(uint16_t address, uint8_t address_kind, int8_t new_speed, bool F0)
 {
-  DCCPacket p(address);
-  byte dir = 1;
-  byte speed_data_bytes[] = {0x40};
-  unsigned int speed = new_speed;
+  DCCPacket p(address, address_kind);
+  uint8_t dir = 1;
+  uint8_t speed_data_uint8_ts[] = {0x40};
+  uint16_t speed = new_speed;
   if(new_speed<0)
   {
     dir = 0;
     speed = new_speed * -1;
   }
   if(!new_speed) //estop!
-    speed_data_bytes[0] |= 0x01; //estop
+    speed_data_uint8_ts[0] |= 0x01; //estop
   else if(new_speed == 1) //regular stop!
-    speed_data_bytes[0] |= 0x00; //stop
+    speed_data_uint8_ts[0] |= 0x00; //stop
   else //movement
-    speed_data_bytes[0] |= map(speed, 2, 127, 2, 15); //convert from [2-127] to [1-14]
-  speed_data_bytes[0] |= (0x20*dir); //flip bit 3 to indicate direction;
-  //Serial.println(speed_data_bytes[0],BIN);
-  p.addData(speed_data_bytes,1);
+    speed_data_uint8_ts[0] |= map(speed, 2, 127, 2, 15); //convert from [2-127] to [1-14]
+  speed_data_uint8_ts[0] |= (0x20*dir); //flip bit 3 to indicate direction;
+  //Serial.println(speed_data_uint8_ts[0],BIN);
+  p.addData(speed_data_uint8_ts,1);
 
   p.setRepeat(SPEED_REPEAT);
   
@@ -355,12 +355,12 @@ bool DCCPacketScheduler::setSpeed14(unsigned int address, char new_speed, bool F
   return(high_priority_queue.insertPacket(&p));
 }
 
-bool DCCPacketScheduler::setSpeed28(unsigned int address, char new_speed)
+bool DCCPacketScheduler::setSpeed28(uint16_t address, uint8_t address_kind, int8_t new_speed)
 {
-  DCCPacket p(address);
-  byte dir = 1;
-  byte speed_data_bytes[] = {0x40};
-  unsigned int speed = new_speed;
+  DCCPacket p(address, address_kind);
+  uint8_t dir = 1;
+  uint8_t speed_data_uint8_ts[] = {0x40};
+  uint16_t speed = new_speed;
   if(new_speed<0)
   {
     dir = 0;
@@ -369,19 +369,19 @@ bool DCCPacketScheduler::setSpeed28(unsigned int address, char new_speed)
 //  Serial.println(speed);
 //  Serial.println(dir);
   if(speed == 0) //estop!
-    speed_data_bytes[0] |= 0x01; //estop
+    speed_data_uint8_ts[0] |= 0x01; //estop
   else if(new_speed == 1) //regular stop!
-    speed_data_bytes[0] |= 0x00; //stop
+    speed_data_uint8_ts[0] |= 0x00; //stop
   else //movement
   {
-    speed_data_bytes[0] |= map(speed, 2, 127, 2, 0X1F); //convert from [2-127] to [2-31]  
+    speed_data_uint8_ts[0] |= map(speed, 2, 127, 2, 0X1F); //convert from [2-127] to [2-31]  
     //most least significant bit has to be shufled around
-    speed_data_bytes[0] = (speed_data_bytes[0]&0xE0) | ((speed_data_bytes[0]&0x1F) >> 1) | ((speed_data_bytes[0]&0x01) << 4);
+    speed_data_uint8_ts[0] = (speed_data_uint8_ts[0]&0xE0) | ((speed_data_uint8_ts[0]&0x1F) >> 1) | ((speed_data_uint8_ts[0]&0x01) << 4);
   }
-  speed_data_bytes[0] |= (0x20*dir); //flip bit 3 to indicate direction;
-//  Serial.println(speed_data_bytes[0],BIN);
+  speed_data_uint8_ts[0] |= (0x20*dir); //flip bit 3 to indicate direction;
+//  Serial.println(speed_data_uint8_ts[0],BIN);
 //  Serial.println("=======");
-  p.addData(speed_data_bytes,1);
+  p.addData(speed_data_uint8_ts,1);
   
   p.setRepeat(SPEED_REPEAT);
   
@@ -393,32 +393,32 @@ bool DCCPacketScheduler::setSpeed28(unsigned int address, char new_speed)
   return(high_priority_queue.insertPacket(&p));
 }
 
-bool DCCPacketScheduler::setSpeed128(unsigned int address, char new_speed)
+bool DCCPacketScheduler::setSpeed128(uint16_t address, uint8_t address_kind, int8_t new_speed)
 {
   //why do we get things like this?
   // 03 3F 16 15 3F (speed packet addressed to loco 03)
   // 03 3F 11 82 AF  (speed packet addressed to loco 03, speed hex 0x11);
-  DCCPacket p(address);
-  byte dir = 1;
-  unsigned int speed = new_speed;
-  byte speed_data_bytes[] = {0x3F,0x00};
+  DCCPacket p(address, address_kind);
+  uint8_t dir = 1;
+  uint16_t speed = new_speed;
+  uint8_t speed_data_uint8_ts[] = {0x3F,0x00};
   if(new_speed<0)
   {
     dir = 0;
     speed = new_speed * -1;
   }
   if(!new_speed) //estop!
-    speed_data_bytes[1] = 0x01; //estop
+    speed_data_uint8_ts[1] = 0x01; //estop
   else if(new_speed == 1) //regular stop!
-    speed_data_bytes[1] = 0x00; //stop
+    speed_data_uint8_ts[1] = 0x00; //stop
   else //movement
-    speed_data_bytes[1] = speed; //no conversion necessary.
+    speed_data_uint8_ts[1] = speed; //no conversion necessary.
 
-  speed_data_bytes[1] |= (0x80*dir); //flip bit 7 to indicate direction;
-  p.addData(speed_data_bytes,2);
-  //Serial.print(speed_data_bytes[0],BIN);
+  speed_data_uint8_ts[1] |= (0x80*dir); //flip bit 7 to indicate direction;
+  p.addData(speed_data_uint8_ts,2);
+  //Serial.print(speed_data_uint8_ts[0],BIN);
   //Serial.print(" ");
-  //Serial.println(speed_data_bytes[1],BIN);
+  //Serial.println(speed_data_uint8_ts[1],BIN);
   
   p.setRepeat(SPEED_REPEAT);
   
@@ -429,31 +429,31 @@ bool DCCPacketScheduler::setSpeed128(unsigned int address, char new_speed)
   return(high_priority_queue.insertPacket(&p));
 }
 
-bool DCCPacketScheduler::setFunctions(unsigned int address, uint16_t functions)
+bool DCCPacketScheduler::setFunctions(uint16_t address, uint8_t address_kind, uint16_t functions)
 {
 //  Serial.println(functions,HEX);
-  if(setFunctions0to4(address, functions&0x1F))
-    if(setFunctions5to8(address, (functions>>5)&0x0F))
-      if(setFunctions9to12(address, (functions>>9)&0x0F))
+  if(setFunctions0to4(address, address_kind, functions&0x1F))
+    if(setFunctions5to8(address, address_kind, (functions>>5)&0x0F))
+      if(setFunctions9to12(address, address_kind, (functions>>9)&0x0F))
         return true;
   return false;
 }
 
-bool DCCPacketScheduler::setFunctions(unsigned int address, byte F0to4, byte F5to8, byte F9to12)
+bool DCCPacketScheduler::setFunctions(uint16_t address, uint8_t address_kind, uint8_t F0to4, uint8_t F5to8, uint8_t F9to12)
 {
-  if(setFunctions0to4(address, F0to4))
-    if(setFunctions5to8(address, F5to8))
-      if(setFunctions9to12(address, F9to12))
+  if(setFunctions0to4(address, address_kind, F0to4))
+    if(setFunctions5to8(address, address_kind, F5to8))
+      if(setFunctions9to12(address, address_kind, F9to12))
         return true;
   return false;
 }
 
-bool DCCPacketScheduler::setFunctions0to4(unsigned int address, byte functions)
+bool DCCPacketScheduler::setFunctions0to4(uint16_t address, uint8_t address_kind, uint8_t functions)
 {
 //  Serial.println("setFunctions0to4");
 //  Serial.println(functions,HEX);
-  DCCPacket p(address);
-  byte data[] = {0x80};
+  DCCPacket p(address, address_kind);
+  uint8_t data[] = {0x80};
   
   //Obnoxiously, the headlights (F0, AKA FL) are not controlled
   //by bit 0, but by bit 4. Really?
@@ -470,12 +470,12 @@ bool DCCPacketScheduler::setFunctions0to4(unsigned int address, byte functions)
 }
 
 
-bool DCCPacketScheduler::setFunctions5to8(unsigned int address, byte functions)
+bool DCCPacketScheduler::setFunctions5to8(uint16_t address, uint8_t address_kind, uint8_t functions)
 {
 //  Serial.println("setFunctions5to8");
 //  Serial.println(functions,HEX);
-  DCCPacket p(address);
-  byte data[] = {0xB0};
+  DCCPacket p(address, address_kind);
+  uint8_t data[] = {0xB0};
   
   data[0] |= functions & 0x0F;
   
@@ -485,12 +485,12 @@ bool DCCPacketScheduler::setFunctions5to8(unsigned int address, byte functions)
   return(low_priority_queue.insertPacket(&p));
 }
 
-bool DCCPacketScheduler::setFunctions9to12(unsigned int address, byte functions)
+bool DCCPacketScheduler::setFunctions9to12(uint16_t address, uint8_t address_kind, uint8_t functions)
 {
 //  Serial.println("setFunctions9to12");
 //  Serial.println(functions,HEX);
-  DCCPacket p(address);
-  byte data[] = {0xA0};
+  DCCPacket p(address, address_kind);
+  uint8_t data[] = {0xA0};
   
   //least significant four functions (F5--F8)
   data[0] |= functions & 0x0F;
@@ -504,10 +504,10 @@ bool DCCPacketScheduler::setFunctions9to12(unsigned int address, byte functions)
 
 //other cool functions to follow. Just get these working first, I think.
 
-//bool DCCPacketScheduler::setTurnout(unsigned int address)
-//bool DCCPacketScheduler::unsetTurnout(unsigned int address)
+//bool DCCPacketScheduler::setTurnout(uint16_t address)
+//bool DCCPacketScheduler::unsetTurnout(uint16_t address)
 
-bool DCCPacketScheduler::opsProgramCV(unsigned int address, unsigned int CV, byte CV_data)
+bool DCCPacketScheduler::opsProgramCV(uint16_t address, uint8_t address_kind, uint16_t CV, uint8_t CV_data)
 {
   //format of packet:
   // {preamble} 0 [ AAAAAAAA ] 0 111011VV 0 VVVVVVVV 0 DDDDDDDD 0 EEEEEEEE 1 (write)
@@ -515,10 +515,10 @@ bool DCCPacketScheduler::opsProgramCV(unsigned int address, unsigned int CV, byt
   // {preamble} 0 [ AAAAAAAA ] 0 111010VV 0 VVVVVVVV 0 DDDDDDDD 0 EEEEEEEE 1 (bit manipulation)
   // only concerned with "write" form here.
   
-  DCCPacket p(address);
-  byte data[] = {0xEC, 0x00, 0x00};
+  DCCPacket p(address, address_kind);
+  uint8_t data[] = {0xEC, 0x00, 0x00};
   
-  // split the CV address up among data bytes 0 and 1
+  // split the CV address up among data uint8_ts 0 and 1
   data[0] |= ((CV-1) & 0x3FF) >> 8;
   data[1] = (CV-1) & 0xFF;
   data[2] = CV_data;
@@ -537,20 +537,20 @@ bool DCCPacketScheduler::eStop(void)
 {
     // 111111111111 0 00000000 0 01DC0001 0 EEEEEEEE 1
     DCCPacket e_stop_packet = DCCPacket(); //address 0
-    byte data[] = {0x71}; //01110001
+    uint8_t data[] = {0x71}; //01110001
     e_stop_packet.addData(data,1);
     e_stop_packet.setKind(e_stop_packet_kind);
     e_stop_packet.setRepeat(10);
     e_stop_queue.insertPacket(&e_stop_packet);
 }
     
-bool DCCPacketScheduler::eStop(unsigned int address)
+bool DCCPacketScheduler::eStop(uint16_t address, uint8_t address_kind)
 {
     // 111111111111 0	0AAAAAAA 0 01001001 0 EEEEEEEE 1
     // or
     // 111111111111 0	0AAAAAAA 0 01000001 0 EEEEEEEE 1
     DCCPacket e_stop_packet = DCCPacket(address);
-    byte data[] = {0x41}; //01000001
+    uint8_t data[] = {0x41}; //01000001
     e_stop_packet.addData(data,1);
     e_stop_packet.setKind(e_stop_packet_kind);
     e_stop_packet.setRepeat(10);
@@ -563,7 +563,7 @@ void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending o
   DCC_waveform_generation_hasshin();
 
   //TODO ADD POM QUEUE?
-  if(!current_byte_counter) //if the ISR needs a packet:
+  if(!current_uint8_t_counter) //if the ISR needs a packet:
   {
     DCCPacket p = DCCPacket();
     //Take from e_stop queue first, then high priority queue.
@@ -594,33 +594,40 @@ void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending o
       //else if(doRepeat)
       if(doRepeat)
       {
+        Serial.println("repeat");
         repeat_queue.readPacket(&p);
         ++packet_counter;
       }
       else if(doLow)
       {
+        Serial.println("low");
         low_priority_queue.readPacket(&p);
         ++packet_counter;
       }
       else if(doHigh)
       {
+        Serial.println("high");
         high_priority_queue.readPacket(&p);
         ++packet_counter;
       }
       //if none of these conditions hold, DCCPackets initialize to the idle packet, so that's what'll get sent.
-      //++packet_counter; //it's a byte; let it overflow, that's OK.
+      //++packet_counter; //it's a uint8_t; let it overflow, that's OK.
       //enqueue the packet for repitition, if necessary:
+      //Serial.println("idle");
       repeatPacket(&p);
     }
     last_packet_address = p.getAddress(); //remember the address to compare with the next packet
     current_packet_size = p.getBitstream(current_packet); //feed to the starving ISR.
     //output the packet, for checking:
-    //for(byte i = 0; i < current_packet_size; ++i)
-    //{
-    //  Serial.print(current_packet[i],BIN);
-    //  Serial.print(" ");
-    //}
-    //Serial.println("");
-    current_byte_counter = current_packet_size;
+    if(current_packet[0] != 0xFF) //if not idle
+    {
+      for(uint8_t i = 0; i < current_packet_size; ++i)
+      {
+        Serial.print(current_packet[i],BIN);
+        Serial.print(" ");
+      }
+      Serial.println("");
+    }
+    current_uint8_t_counter = current_packet_size;
   }
 }
