@@ -3,6 +3,8 @@
 #include "DCCPacket.h"
 #include "DCCPacketQueue.h"
 
+#define DCC_SHORT_ADDRESS 0
+#define DCC_LONG_ADDRESS 1
 
 #define E_STOP_QUEUE_SIZE           2
 #define HIGH_PRIORITY_QUEUE_SIZE    10
