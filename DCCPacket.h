@@ -43,8 +43,9 @@ class DCCPacket
     
     uint8_t getBitstream(uint8_t rawuint8_ts[]); //returns size of array.
     uint8_t getSize(void);
-    inline unsigned int getAddress(void) { return address; }
-    inline void setAddress(unsigned int new_address) { address = new_address; }
+    inline uint16_t getAddress(void) { return address; }
+    inline uint8_t getAddressKind(void) { return address_kind; }
+    inline void setAddress(uint16_t new_address, uint8_t new_address_kind) { address = new_address; address_kind = new_address_kind; }
     uint8_t addData(uint8_t new_data[], uint8_t new_size); //insert freeform data.
     inline void setKind(uint8_t new_kind) { kind = new_kind; }
     inline uint8_t getKind(void) { return kind; }
