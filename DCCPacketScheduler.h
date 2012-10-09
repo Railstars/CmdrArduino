@@ -41,7 +41,7 @@ class DCCPacketScheduler
     //the function methods are NOT stateful; you must specify all functions each time you call one
     //keeping track of function state is the responsibility of the calling program.
     bool setFunctions(uint16_t address, uint8_t address_kind, uint8_t F0to4, uint8_t F5to9=0x00, uint8_t F9to12=0x00);
-    bool setFunctions(uint16_t address, uint8_t address_kind, uint16_t functions);
+    bool setFunctions(uint16_t address, uint8_t address_kind, uint32_t functions);
     bool setFunctions0to4(uint16_t address, uint8_t address_kind, uint8_t functions);
     bool setFunctions5to8(uint16_t address, uint8_t address_kind, uint8_t functions);
     bool setFunctions9to12(uint16_t address, uint8_t address_kind, uint8_t functions);

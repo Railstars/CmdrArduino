@@ -249,7 +249,7 @@ bool DCCPacketScheduler::setSpeed128(uint16_t address, uint8_t address_kind, int
   return(high_priority_queue.insertPacket(&p));
 }
 
-bool DCCPacketScheduler::setFunctions(uint16_t address, uint8_t address_kind, uint16_t functions)
+bool DCCPacketScheduler::setFunctions(uint16_t address, uint8_t address_kind, uint32_t functions)
 {
 //  Serial.println(functions,HEX);
   if(setFunctions0to4(address, address_kind, functions&0x1F))
@@ -421,19 +421,19 @@ void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending o
       //else if(doRepeat)
       if(doRepeat)
       {
-        Serial.println("repeat");
+        //Serial.println("repeat");
         repeat_queue.readPacket(&p);
         ++packet_counter;
       }
       else if(doLow)
       {
-        Serial.println("low");
+        //Serial.println("low");
         low_priority_queue.readPacket(&p);
         ++packet_counter;
       }
       else if(doHigh)
       {
-        Serial.println("high");
+        //Serial.println("high");
         high_priority_queue.readPacket(&p);
         ++packet_counter;
       }
@@ -446,15 +446,15 @@ void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending o
     last_packet_address = p.getAddress(); //remember the address to compare with the next packet
     current_packet_size = p.getBitstream(current_packet); //feed to the starving ISR.
     //output the packet, for checking:
-    if(current_packet[0] != 0xFF) //if not idle
-    {
-      for(uint8_t i = 0; i < current_packet_size; ++i)
-      {
-        Serial.print(current_packet[i],BIN);
-        Serial.print(" ");
-      }
-      Serial.println("");
-    }
+    //if(current_packet[0] != 0xFF) //if not idle
+    //{
+    //  for(uint8_t i = 0; i < current_packet_size; ++i)
+    //  {
+    //    Serial.print(current_packet[i],BIN);
+    //    Serial.print(" ");
+    //  }
+    //  Serial.println("");
+    //}
     current_uint8_t_counter = current_packet_size;
   }
 }
