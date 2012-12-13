@@ -1,8 +1,6 @@
 DCCPacketScheduler	KEYWORD1
 DCCPacket		KEYWORD1
 DCCPacketQueue		KEYWORD1
-DCCRepeatQueue		KEYWORD1
-DCCTemporalQueue	KEYWORD1
 setDefaultSpeedSteps	KEYWORD2
 setup			KEYWORD2
 setSpeed		KEYWORD2
@@ -13,8 +11,8 @@ setFunctions		KEYWORD2
 setFunctions0to4	KEYWORD2
 setFunctions5to8	KEYWORD2
 setFunctions9to12	KEYWORD2
-setTurnout		KEYWORD2
-unsetTurnout		KEYWORD2
-programCV		KEYWORD2
+setBasicAccessory	KEYWORD2
+unsetBasicAccessory	KEYWORD2
+opsProgramCV		KEYWORD2
 eStop			KEYWORD2
 update			KEYWORD2
