@@ -1,8 +1,9 @@
 #include "DCCPacket.h"
 
-
 DCCPacket::DCCPacket(uint16_t new_address, uint8_t new_address_kind) : address(new_address), address_kind(new_address_kind), kind(idle_packet_kind), size_repeat(0x40) //size(1), repeat(0)
 {
+  address = new_address;
+  address_kind = new_address_kind;
   data[0] = 0x00; //default to idle packet
   data[1] = 0x00;
   data[2] = 0x00;

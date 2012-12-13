@@ -79,87 +79,30 @@ bool DCCPacketQueue::readPacket(DCCPacket *packet)
   return false;
 }
 
-
-/*****************************/
-
-
-void DCCTemporalQueue::setup(byte length)
-{
-  DCCPacketQueue::setup(length);
-
-  age = (byte *)malloc(sizeof(byte)*size);
-  for(int i = 0; i<length; ++i)
-  {
-    age[i] = 255;
-  }
-}
-
-bool DCCTemporalQueue::insertPacket(DCCPacket *packet)
-{
-  //first, see if there is a packet to overwrite
-  //otherwise find the oldest packet, and write over it.
-  byte eldest = 0;
-  byte eldest_idx = 0;
-  bool updating = false;
-  for(byte i = 0; i < size; ++i)
-  {
-    if( (queue[i].getAddress() == packet->getAddress()) && (queue[i].getKind() == packet->getKind()) )
-    {
-      eldest_idx = i;
-      updating = true;
-      break; //short circuit this, we've found it;
-    }
-    else if(age[i] > eldest)
-    {
-      eldest = age[i];
-      eldest_idx = i;
-    }
-  }
-
-  
-  memcpy(&queue[eldest_idx],packet,sizeof(DCCPacket));
-  age[eldest_idx] = 0;
-  //now, age the remaining packets in the queue.
-  for(int i = 0; i < size; ++i)
-  {
-    if(i != eldest_idx)
-    {
-      if(age[i] < 255) //ceiling effect for age.
-      {
-        ++age[i];
-      }
-    }
-  }
-  if(!updating)
-    ++written;
-  return true;
-}
-
-bool DCCTemporalQueue::readPacket(DCCPacket *packet)
-{
-  if(!isEmpty()) //prevents the while loop below from running forever.
-  {
-    //valid packets will be found in index range [0,written);
-    memcpy(packet,&queue[read_pos],sizeof(DCCPacket));
-    read_pos = (read_pos + 1) % (written);
-    return true;
-  }
-  return false;
-}
-
-bool DCCTemporalQueue::forget(unsigned int address)
+bool DCCPacketQueue::forget(uint16_t address, uint8_t address_kind)
 {
   bool found = false;
   for(int i = 0; i < size; ++i)
   {
-    if(queue[i].getAddress() == address)
+    if( (queue[i].getAddress() == address) && (queue[i].getAddressKind() == address_kind) )
     {
+      found = true;
       queue[i] = DCCPacket(); //revert to default value
-      age[i] = 255; //mark it as really old.
     }
   }
   --written;
   return found;
+}
+
+void DCCPacketQueue::clear(void)
+{
+  read_pos = 0;
+  write_pos = 0;
+  written = 0;
+  for(int i = 0; i<size; ++i)
+  {
+    queue[i] = DCCPacket();
+  }
 }
 
 

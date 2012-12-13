@@ -74,7 +74,7 @@ void DCCPacketScheduler::setup(void) //for any post-constructor initialization
   
   //reset packet: address 0x00, data 0x00, XOR 0x00; S 9.2 line 75
   p.addData(data,1);
-  p.setAddress(0x00);
+  p.setAddress(0x00, DCC_SHORT_ADDRESS);
   p.setRepeat(20);
   p.setKind(reset_packet_kind);
   e_stop_queue.insertPacket(&p);
@@ -85,7 +85,7 @@ void DCCPacketScheduler::setup(void) //for any post-constructor initialization
   // 00 FF FF   what are these?
   
   //idle packet: address 0xFF, data 0x00, XOR 0xFF; S 9.2 line 90
-  p.setAddress(0xFF);
+  p.setAddress(0xFF, DCC_SHORT_ADDRESS);
   p.setRepeat(10);
   p.setKind(idle_packet_kind);
   e_stop_queue.insertPacket(&p); //e_stop_queue will be empty, so no need to check if insertion was OK.
@@ -154,7 +154,8 @@ bool DCCPacketScheduler::setSpeed14(uint16_t address, uint8_t address_kind, int8
     speed = new_speed * -1;
   }
   if(!new_speed) //estop!
-    speed_data_uint8_ts[0] |= 0x01; //estop
+    return eStop(address, address_kind);//speed_data_uint8_ts[0] |= 0x01; //estop
+    
   else if(new_speed == 1) //regular stop!
     speed_data_uint8_ts[0] |= 0x00; //stop
   else //movement
@@ -186,7 +187,7 @@ bool DCCPacketScheduler::setSpeed28(uint16_t address, uint8_t address_kind, int8
 //  Serial.println(speed);
 //  Serial.println(dir);
   if(speed == 0) //estop!
-    speed_data_uint8_ts[0] |= 0x01; //estop
+    return eStop(address, address_kind);//speed_data_uint8_ts[0] |= 0x01; //estop
   else if(new_speed == 1) //regular stop!
     speed_data_uint8_ts[0] |= 0x00; //stop
   else //movement
@@ -225,7 +226,7 @@ bool DCCPacketScheduler::setSpeed128(uint16_t address, uint8_t address_kind, int
     speed = new_speed * -1;
   }
   if(!new_speed) //estop!
-    speed_data_uint8_ts[1] = 0x01; //estop
+    return eStop(address, address_kind);//speed_data_uint8_ts[0] |= 0x01; //estop
   else if(new_speed == 1) //regular stop!
     speed_data_uint8_ts[1] = 0x00; //stop
   else //movement
@@ -358,7 +359,12 @@ bool DCCPacketScheduler::eStop(void)
     e_stop_packet.addData(data,1);
     e_stop_packet.setKind(e_stop_packet_kind);
     e_stop_packet.setRepeat(10);
-    return e_stop_queue.insertPacket(&e_stop_packet);
+    e_stop_queue.insertPacket(&e_stop_packet);
+    //now, clear all other queues
+    high_priority_queue.clear();
+    low_priority_queue.clear();
+    repeat_queue.clear();
+    return true;
 }
     
 bool DCCPacketScheduler::eStop(uint16_t address, uint8_t address_kind)
@@ -371,7 +377,11 @@ bool DCCPacketScheduler::eStop(uint16_t address, uint8_t address_kind)
     e_stop_packet.addData(data,1);
     e_stop_packet.setKind(e_stop_packet_kind);
     e_stop_packet.setRepeat(10);
-    return e_stop_queue.insertPacket(&e_stop_packet);
+    e_stop_queue.insertPacket(&e_stop_packet);
+    //now, clear this packet's address from all other queues
+    high_priority_queue.forget(address, address_kind);
+    low_priority_queue.forget(address, address_kind);
+    repeat_queue.forget(address, address_kind);
 }
 
 bool DCCPacketScheduler::setBasicAccessory(uint16_t address, uint8_t function)
@@ -435,19 +445,19 @@ void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending o
       //else if(doRepeat)
       if(doRepeat)
       {
-        Serial.println("repeat");
+        //Serial.println("repeat");
         repeat_queue.readPacket(&p);
         ++packet_counter;
       }
       else if(doLow)
       {
-        Serial.println("low");
+        //Serial.println("low");
         low_priority_queue.readPacket(&p);
         ++packet_counter;
       }
       else if(doHigh)
       {
-        Serial.println("high");
+        //Serial.println("high");
         high_priority_queue.readPacket(&p);
         ++packet_counter;
       }
@@ -460,15 +470,15 @@ void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending o
     last_packet_address = p.getAddress(); //remember the address to compare with the next packet
     current_packet_size = p.getBitstream(current_packet); //feed to the starving ISR.
     //output the packet, for checking:
-    if(current_packet[0] != 0xFF) //if not idle
-    {
-      for(uint8_t i = 0; i < current_packet_size; ++i)
-      {
-        Serial.print(current_packet[i],BIN);
-        Serial.print(" ");
-      }
-      Serial.println("");
-    }
+    //if(current_packet[0] != 0xFF) //if not idle
+    //{
+    //  for(uint8_t i = 0; i < current_packet_size; ++i)
+    //  {
+    //    Serial.print(current_packet[i],BIN);
+    //    Serial.print(" ");
+    //  }
+    //  Serial.println("");
+    //}
     current_uint8_t_counter = current_packet_size;
   }
 }

@@ -51,20 +51,9 @@ class DCCPacketQueue
     
     virtual bool insertPacket(DCCPacket *packet); //makes a local copy, does not take over memory management!
     virtual bool readPacket(DCCPacket *packet); //does not hand off memory management of packet. used immediately.
-};
-
-//A queue that, instead of writing new packets to the end of the queue, simply overwrites the oldest packet in the queue
-class DCCTemporalQueue: public DCCPacketQueue
-{
-  public: //protected:
-    byte *age;
-  public:
-    DCCTemporalQueue(void) : DCCPacketQueue() {};
-    void setup(byte length);
-    inline bool isFull(void) { return false; }
-    bool insertPacket(DCCPacket *packet);
-    bool readPacket(DCCPacket *packet);
-    bool forget(unsigned int address);
+    
+    bool forget(uint16_t address, uint8_t address_kind);
+    void clear(void);
 };
 
 //A queue that, when a packet is read, puts that packet back in the queue if it requires repeating.
@@ -75,7 +64,6 @@ class DCCRepeatQueue: public DCCPacketQueue
     //void setup(byte length);
     bool insertPacket(DCCPacket *packet);
     bool readPacket(DCCPacket *packet);
-    bool forget(unsigned int address);
 };
 
 //A queue that repeats the topmost packet as many times as is indicated by the packet before moving on
