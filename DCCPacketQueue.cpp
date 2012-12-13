@@ -1,6 +1,6 @@
 #include "DCCPacketQueue.h"
 
-DCCPacketQueue::DCCPacketQueue(void) : read_pos(0), write_pos(0), written(0), size(10)
+DCCPacketQueue::DCCPacketQueue(void) : read_pos(0), write_pos(0), size(10), written(0)
 {
   return;
 }

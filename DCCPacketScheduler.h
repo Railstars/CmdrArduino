@@ -2,9 +2,7 @@
 #define __DCCCOMMANDSTATION_H__
 #include "DCCPacket.h"
 #include "DCCPacketQueue.h"
-#include "Arduino.h"
-#include <avr/io.h>
-#include <avr/interrupt.h>
+
 
 #define E_STOP_QUEUE_SIZE           2
 #define HIGH_PRIORITY_QUEUE_SIZE    10
@@ -47,8 +45,8 @@ class DCCPacketScheduler
     bool setFunctions9to12(uint16_t address, uint8_t address_kind, uint8_t functions);
     //other cool functions to follow. Just get these working first, I think.
     
-    bool setTurnout(uint16_t address, uint8_t address_kind);
-    bool unsetTurnout(uint16_t address, uint8_t address_kind);
+    bool setBasicAccessory(uint16_t address, uint8_t function);
+    bool unsetBasicAccessory(uint16_t address, uint8_t function);
     
     bool opsProgramCV(uint16_t address, uint8_t address_kind, uint16_t CV, uint8_t CV_data);
 

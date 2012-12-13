@@ -17,16 +17,26 @@ typedef unsigned char uint8_t;
 //   other_packet_kind
 // };
 
-#define idle_packet_kind            0
-#define e_stop_packet_kind          1
-#define speed_packet_kind           2
-#define function_packet_1_kind        3
-#define function_packet_2_kind        4
-#define function_packet_3_kind        5
-#define accessory_packet_kind       6
-#define reset_packet_kind           7
-#define ops_mode_programming_kind   8
-#define other_packet_kind           9
+#define MULTIFUNCTION_PACKET_KIND_MASK 0x10
+#define idle_packet_kind            0x10
+#define e_stop_packet_kind          0x11
+#define speed_packet_kind           0x12
+#define function_packet_1_kind      0x13
+#define function_packet_2_kind      0x14
+#define function_packet_3_kind      0x15
+#define accessory_packet_kind       0x16
+#define reset_packet_kind           0x17
+#define ops_mode_programming_kind   0x18
+
+
+#define ACCESSORY_PACKET_KIND_MASK 0x40
+#define basic_accessory_packet_kind 0x40
+#define extended_accessory_packet_kind 0x41
+
+#define other_packet_kind           0x00
+
+#define DCC_SHORT_ADDRESS           0x00
+#define DCC_LONG_ADDRESS            0x01
 
 class DCCPacket
 {
@@ -43,9 +53,11 @@ class DCCPacket
     
     uint8_t getBitstream(uint8_t rawuint8_ts[]); //returns size of array.
     uint8_t getSize(void);
-    inline unsigned int getAddress(void) { return address; }
-    inline void setAddress(unsigned int new_address) { address = new_address; }
-    uint8_t addData(uint8_t new_data[], uint8_t new_size); //insert freeform data.
+    inline uint16_t getAddress(void) { return address; }
+    inline uint8_t getAddressKind(void) { return address_kind; }
+    inline void setAddress(uint16_t new_address) { address = new_address; }
+    inline void setAddress(uint16_t new_address, uint8_t new_address_kind) { address = new_address; address_kind = new_address_kind; }
+    void addData(uint8_t new_data[], uint8_t new_size); //insert freeform data.
     inline void setKind(uint8_t new_kind) { kind = new_kind; }
     inline uint8_t getKind(void) { return kind; }
     inline void setRepeat(uint8_t new_repeat) { size_repeat = ((size_repeat&0xC0) | (new_repeat&0x3F)) ;}
