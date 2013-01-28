@@ -36,19 +36,25 @@ void loop() {
     //toggle!
     F0 = (F0+1)%2;
     Serial.println(F0,BIN);
-    dps.setFunctions0to4(3,DCC_SHORT_ADDRESS,F0<<4);
+    dps.setFunctions0to4(3,DCC_SHORT_ADDRESS,F0);
   }
   prev_state = button_state;
 
   //handle reading throttle
   analog_value = analogRead(0);
-  speed_byte = (analog_value >> 2)-127; //divide by two to take a 0-1023 range number and make it 0-127 range.
+  speed_byte = (analog_value >> 2)-127 ; //divide by four to take a 0-1023 range number and make it 1-126 range.
   if(speed_byte != old_speed)
   {
+    if(speed_byte == 0) //this would be treated as an e-stop!
+    {
+      if(old_speed > 0) speed_byte = 1;
+      else speed_byte = -1;
+    }
     Serial.print("analog = ");
     Serial.println(analog_value, DEC);
     Serial.print("digital = ");
     Serial.println(speed_byte, DEC);
+    if(abs(speed_byte) == 1) speed_byte = 0; //is this righjt? trying to avoid an estop
     dps.setSpeed128(3,DCC_SHORT_ADDRESS,speed_byte);
     old_speed = speed_byte;
   }
