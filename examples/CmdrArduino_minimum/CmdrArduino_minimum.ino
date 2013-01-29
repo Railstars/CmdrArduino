@@ -34,7 +34,7 @@ void loop() {
   if(button_state && (button_state != prev_state))
   {
     //toggle!
-    F0 = (F0+1)%2;
+    F0 ^= 1;
     Serial.println(F0,BIN);
     dps.setFunctions0to4(3,DCC_SHORT_ADDRESS,F0);
   }
@@ -54,7 +54,6 @@ void loop() {
     Serial.println(analog_value, DEC);
     Serial.print("digital = ");
     Serial.println(speed_byte, DEC);
-    if(abs(speed_byte) == 1) speed_byte = 0; //is this righjt? trying to avoid an estop
     dps.setSpeed128(3,DCC_SHORT_ADDRESS,speed_byte);
     old_speed = speed_byte;
   }
