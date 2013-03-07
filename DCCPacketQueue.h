@@ -1,7 +1,10 @@
 #ifndef __DCCPACKETQUEUE_H__
 #define __DCCPACKETQUEUE_H__
 
-#include "Arduino.h"
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include "DCCPacket.h"
 
 /**
  * A FIFO queue for holding DCC packets, implemented as a circular buffer.
@@ -9,20 +12,19 @@
  * TODO
 **/
 
-#include "DCCPacket.h"
 
 class DCCPacketQueue
 {
   public: //protected:
     DCCPacket *queue;
-    byte read_pos;
-    byte write_pos;
-    byte size;
-    byte written; //how many cells have valid data? used for determining full status.  
+    uint8_t read_pos;
+    uint8_t write_pos;
+    uint8_t size;
+    uint8_t written; //how many cells have valid data? used for determining full status.
   public:
     DCCPacketQueue(void);
     
-    virtual void setup(byte);
+    virtual void setup(uint8_t);
     
     ~DCCPacketQueue(void)
     {
@@ -61,7 +63,7 @@ class DCCRepeatQueue: public DCCPacketQueue
 {
   public:
     DCCRepeatQueue(void);
-    //void setup(byte length);
+    //void setup(uint8_t length);
     bool insertPacket(DCCPacket *packet);
     bool readPacket(DCCPacket *packet);
 };

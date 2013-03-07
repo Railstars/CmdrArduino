@@ -1,5 +1,7 @@
 #ifndef __DCCCOMMANDSTATION_H__
 #define __DCCCOMMANDSTATION_H__
+
+#include <stdint.h>
 #include "DCCPacket.h"
 #include "DCCPacketQueue.h"
 

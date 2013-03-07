@@ -1,7 +1,7 @@
 #ifndef __DCCPACKET_H__
 #define __DCCPACKET_H__
 
-#include "Arduino.h"
+#include <stdint.h>
 
 typedef unsigned char uint8_t;
 

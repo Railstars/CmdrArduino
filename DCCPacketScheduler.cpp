@@ -1,6 +1,13 @@
 #include "DCCPacketScheduler.h"
 #include "DCCHardware.h"
 
+#if !defined(__AVR__)
+long map(long x, long in_min, long in_max, long out_min, long out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+#endif
+
 /*
  * DCC Waveform Generator
  *
@@ -34,7 +41,7 @@ extern uint8_t current_packet[6];
 /// How many data uint8_ts in the queued packet?
 extern volatile uint8_t current_packet_size;
 /// How many uint8_ts remain to be put on the rails?
-extern volatile uint8_t current_uint8_t_counter;
+extern volatile uint8_t current_byte_counter;
 /// How many bits remain in the current data uint8_t/preamble before changing states?
 extern volatile uint8_t current_bit_counter; //init to 14 1's for the preamble
 /// A fixed-content packet to send when idle
@@ -411,10 +418,10 @@ bool DCCPacketScheduler::unsetBasicAccessory(uint16_t address, uint8_t function)
 //to be called periodically within loop()
 void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending on the rails via global current_packet. easy-peasy
 {
-  DCC_waveform_generation_hasshin();
+  DCC_waveform_generation_start();
 
   //TODO ADD POM QUEUE?
-  if(!current_uint8_t_counter) //if the ISR needs a packet:
+  if(!current_byte_counter) //if the ISR needs a packet:
   {
     DCCPacket p;
     //Take from e_stop queue first, then high priority queue.
@@ -479,6 +486,6 @@ void DCCPacketScheduler::update(void) //checks queues, puts whatever's pending o
     //  }
     //  Serial.println("");
     //}
-    current_uint8_t_counter = current_packet_size;
+    current_byte_counter = current_packet_size;
   }
 }

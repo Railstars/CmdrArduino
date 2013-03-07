@@ -1,11 +1,12 @@
 #include "DCCPacketQueue.h"
 
+
 DCCPacketQueue::DCCPacketQueue(void) : read_pos(0), write_pos(0), size(10), written(0)
 {
   return;
 }
 
-void DCCPacketQueue::setup(byte length)
+void DCCPacketQueue::setup(uint8_t length)
 {
   size = length;
   queue = (DCCPacket *)malloc(sizeof(DCCPacket) *size);
@@ -20,7 +21,7 @@ bool DCCPacketQueue::insertPacket(DCCPacket *packet)
 //  Serial.print("Enqueueing a packet of kind: ");
 //  Serial.println(packet->getKind(), DEC);
    //First: Overwrite any packet with the same address and kind; if no such packet THEN hitup the packet at write_pos
-  byte i = read_pos;
+  uint8_t i = read_pos;
   while(i != (read_pos+written)%(size) )//(size+1) ) //size+1 so we can check the last slot, too…
   {
     if( (queue[i].getAddress() == packet->getAddress()) && (queue[i].getKind() == packet->getKind()))
@@ -51,7 +52,7 @@ bool DCCPacketQueue::insertPacket(DCCPacket *packet)
 
 // void DCCPacketQueue::printQueue(void)
 // {
-//   byte i, j;
+//   uint8_t i, j;
 //   for(i = 0; i < size; ++i)
 //   {
 //     for(j = 0; j < (queue[i].size_repeat>>4); ++j)
