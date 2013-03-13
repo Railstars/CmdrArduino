@@ -1,4 +1,3 @@
-
 /********************
 * Creates a minimum DCC command station from a potentiometer connected to analog pin 0,
 * and a button connected to ground on one end and digital pin 4 on the other end. See this link
@@ -24,7 +23,7 @@ void setup() {
   dps.setup();
 
   //set up button on pin 4
-  pinMode(4, OUTPUT);
+  pinMode(4, INPUT);
   digitalWrite(4, HIGH); //activate built-in pull-up resistor  
 }
 
