@@ -147,19 +147,19 @@ bool DCCPacketScheduler::setSpeed14(uint16_t address, uint8_t address_kind, int8
   DCCPacket p(address, address_kind);
   uint8_t dir = 1;
   uint8_t speed_data_uint8_ts[] = {0x40};
-  uint16_t speed = new_speed;
+  uint16_t abs_speed = new_speed;
   if(new_speed<0)
   {
     dir = 0;
-    speed = new_speed * -1;
+    abs_speed = new_speed * -1;
   }
   if(!new_speed) //estop!
     return eStop(address, address_kind);//speed_data_uint8_ts[0] |= 0x01; //estop
     
-  else if ((new_speed == 1) or ((new_speed == -1))) //regular stop!
+  else if (abs_speed == 1) //regular stop!
     speed_data_uint8_ts[0] |= 0x00; //stop
   else //movement
-    speed_data_uint8_ts[0] |= map(speed, 2, 127, 2, 15); //convert from [2-127] to [1-14]
+    speed_data_uint8_ts[0] |= map(abs_speed, 2, 127, 2, 15); //convert from [2-127] to [1-14]
   speed_data_uint8_ts[0] |= (0x20*dir); //flip bit 3 to indicate direction;
   //Serial.println(speed_data_uint8_ts[0],BIN);
   p.addData(speed_data_uint8_ts,1);
@@ -178,21 +178,21 @@ bool DCCPacketScheduler::setSpeed28(uint16_t address, uint8_t address_kind, int8
   DCCPacket p(address, address_kind);
   uint8_t dir = 1;
   uint8_t speed_data_uint8_ts[] = {0x40};
-  uint16_t speed = new_speed;
+  uint16_t abs_speed = new_speed;
   if(new_speed<0)
   {
     dir = 0;
-    speed = new_speed * -1;
+    abs_speed = new_speed * -1;
   }
 //  Serial.println(speed);
 //  Serial.println(dir);
   if(speed == 0) //estop!
     return eStop(address, address_kind);//speed_data_uint8_ts[0] |= 0x01; //estop
-  else if ((new_speed == 1) or ((new_speed == -1))) //regular stop!
+  else if (abs_speed == 1) //regular stop!
     speed_data_uint8_ts[0] |= 0x00; //stop
   else //movement
   {
-    speed_data_uint8_ts[0] |= map(speed, 2, 127, 2, 0X1F); //convert from [2-127] to [2-31]  
+    speed_data_uint8_ts[0] |= map(abs_speed, 2, 127, 2, 0X1F); //convert from [2-127] to [2-31]  
     //most least significant bit has to be shufled around
     speed_data_uint8_ts[0] = (speed_data_uint8_ts[0]&0xE0) | ((speed_data_uint8_ts[0]&0x1F) >> 1) | ((speed_data_uint8_ts[0]&0x01) << 4);
   }
@@ -218,19 +218,19 @@ bool DCCPacketScheduler::setSpeed128(uint16_t address, uint8_t address_kind, int
   // 03 3F 11 82 AF  (speed packet addressed to loco 03, speed hex 0x11);
   DCCPacket p(address, address_kind);
   uint8_t dir = 1;
-  uint16_t speed = new_speed;
+  uint16_t abs_speed = new_speed;
   uint8_t speed_data_uint8_ts[] = {0x3F,0x00};
   if(new_speed<0)
   {
     dir = 0;
-    speed = new_speed * -1;
+    abs_speed = new_speed * -1;
   }
   if(!new_speed) //estop!
     return eStop(address, address_kind);//speed_data_uint8_ts[0] |= 0x01; //estop
-  else if ((new_speed == 1) or ((new_speed == -1))) //regular stop!
+  else if (abs_speed == 1) //regular stop!
     speed_data_uint8_ts[1] = 0x00; //stop
   else //movement
-    speed_data_uint8_ts[1] = speed; //no conversion necessary.
+    speed_data_uint8_ts[1] = abs_speed; //no conversion necessary.
 
   speed_data_uint8_ts[1] |= (0x80*dir); //flip bit 7 to indicate direction;
   p.addData(speed_data_uint8_ts,2);
