@@ -156,7 +156,7 @@ bool DCCPacketScheduler::setSpeed14(uint16_t address, uint8_t address_kind, int8
   if(!new_speed) //estop!
     return eStop(address, address_kind);//speed_data_uint8_ts[0] |= 0x01; //estop
     
-  else if(new_speed == 1) //regular stop!
+  else if ((new_speed == 1) or ((new_speed == -1))) //regular stop!
     speed_data_uint8_ts[0] |= 0x00; //stop
   else //movement
     speed_data_uint8_ts[0] |= map(speed, 2, 127, 2, 15); //convert from [2-127] to [1-14]
@@ -188,7 +188,7 @@ bool DCCPacketScheduler::setSpeed28(uint16_t address, uint8_t address_kind, int8
 //  Serial.println(dir);
   if(speed == 0) //estop!
     return eStop(address, address_kind);//speed_data_uint8_ts[0] |= 0x01; //estop
-  else if(new_speed == 1) //regular stop!
+  else if ((new_speed == 1) or ((new_speed == -1))) //regular stop!
     speed_data_uint8_ts[0] |= 0x00; //stop
   else //movement
   {
@@ -227,7 +227,7 @@ bool DCCPacketScheduler::setSpeed128(uint16_t address, uint8_t address_kind, int
   }
   if(!new_speed) //estop!
     return eStop(address, address_kind);//speed_data_uint8_ts[0] |= 0x01; //estop
-  else if(new_speed == 1) //regular stop!
+  else if ((new_speed == 1) or ((new_speed == -1))) //regular stop!
     speed_data_uint8_ts[1] = 0x00; //stop
   else //movement
     speed_data_uint8_ts[1] = speed; //no conversion necessary.
