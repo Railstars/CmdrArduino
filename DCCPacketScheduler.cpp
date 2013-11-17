@@ -186,7 +186,7 @@ bool DCCPacketScheduler::setSpeed28(uint16_t address, uint8_t address_kind, int8
   }
 //  Serial.println(speed);
 //  Serial.println(dir);
-  if(speed == 0) //estop!
+  if(new_speed == 0) //estop!
     return eStop(address, address_kind);//speed_data_uint8_ts[0] |= 0x01; //estop
   else if (abs_speed == 1) //regular stop!
     speed_data_uint8_ts[0] |= 0x00; //stop
