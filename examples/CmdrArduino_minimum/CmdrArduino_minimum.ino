@@ -4,6 +4,7 @@
 * http://www.arduino.cc/en/Tutorial/AnalogInput
 * The DCC waveform is output on Pin 9, and is suitable for connection to an LMD18200-based booster directly,
 * or to a single-ended-to-differential driver, to connect with most other kinds of boosters.
+* The Differential DCC waveform is output on Pins 9 and 10.
 ********************/
 
 #include <DCCPacket.h>
