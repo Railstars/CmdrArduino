@@ -42,7 +42,7 @@ void loop() {
 
   //handle reading throttle
   analog_value = analogRead(0);
-  speed_byte = (analog_value >> 2)-127 ; //divide by four to take a 0-1023 range number and make it 1-126 range.
+  speed_byte = map(analog_value, 0, 1023, -127, 127); //Remap the analog input from [0 to 1023] into [-127 to 127]
   if(speed_byte != old_speed)
   {
     if(speed_byte == 0) //this would be treated as an e-stop!
