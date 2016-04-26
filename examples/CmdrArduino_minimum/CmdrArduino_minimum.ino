@@ -43,11 +43,11 @@ void loop() {
   //handle reading throttle
   analog_value = analogRead(0);
   const uint16_t dead_zone_width = 10;
-  if(analog_value <= (511-dead_zone_width))
+  if(analog_value <= (511-(.5*dead_zone_width)))
   {
     speed_byte = map(analog_value, 0, 511-(.5*dead_zone_width), -127, -2)
   }
-  else if(analog_value >= (512+dead_zone_width))
+  else if(analog_value >= (511+(.5*dead_zone_width)))
   {
     speed_byte = map(analog_value, 511+(.5*dead_zone_width), 1023, 2, 127)
   }
