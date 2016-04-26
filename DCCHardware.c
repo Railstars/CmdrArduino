@@ -10,7 +10,7 @@
       *dos_send_premable: A packet has been made available, and so we should broadcast the preamble: 14 '1's in a row
       *dos_send_bstart: Each data uint8_t is preceded by a '0'
       *dos_send_uint8_t: Sending the current data uint8_t
-      *dos_end_bit: After the final uint8_t is sent, send a '0'.
+      *dos_end_bit: After the final uint8_t is sent, send a '1'.
 */                 
 typedef enum  {
   dos_idle,
