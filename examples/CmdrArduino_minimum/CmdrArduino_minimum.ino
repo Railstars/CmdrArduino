@@ -42,14 +42,23 @@ void loop() {
 
   //handle reading throttle
   analog_value = analogRead(0);
-  speed_byte = map(analog_value, 0, 1023, -127, 127); //Remap the analog input from [0 to 1023] into [-127 to 127]
+  const uint16_t dead_zone_width = 10;
+  if(analog_value <= (511-dead_zone_width))
+  {
+    speed_byte = map(analog_value, 0, 511-(.5*dead_zone_width), -127, -2)
+  }
+  else if(analog_value >= (512+dead_zone_width))
+  {
+    speed_byte = map(analog_value, 511+(.5*dead_zone_width), 1023, 2, 127)
+  }
+  else
+  {
+    if(old_speed > 0) speed_byte = 1;
+    else speed_byte = -1; 
+  }
+
   if(speed_byte != old_speed)
   {
-    if(speed_byte == 0) //this would be treated as an e-stop!
-    {
-      if(old_speed > 0) speed_byte = 1;
-      else speed_byte = -1;
-    }
     Serial.print("analog = ");
     Serial.println(analog_value, DEC);
     Serial.print("digital = ");
@@ -58,6 +67,6 @@ void loop() {
     old_speed = speed_byte;
   }
   dps.update();
-  
+
   ++count;
 }
